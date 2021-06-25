@@ -20,7 +20,7 @@ import math
 import os
 import warnings
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 
 import torch
 import torch.utils.checkpoint
@@ -863,6 +863,17 @@ class BertModel(BertPreTrainedModel):
         self.pooler = BertPooler(config) if add_pooling_layer else None
 
         self.init_weights()
+
+    # Added by Arnout.
+    def prune_mlp_neurons(self, neurons: Dict[int, Tuple[int]]) -> None:
+        for i, l in enumerate(self.encoder.layer):
+            # intermediate
+            l.intermediate.dense.weight = l.intermediate.dense.weight[neurons[i]] # (output_dim, input_dim)
+            l.intermediate.dense.bias = l.intermediate.dense.bias[neurons[i]]
+            # output
+            l.output.dense.weight = l.output.dense.weight[neurons[i]]
+            l.output.dense.bias = l.output.dense.bias[neurons[i]]
+
 
     def get_input_embeddings(self):
         return self.embeddings.word_embeddings
