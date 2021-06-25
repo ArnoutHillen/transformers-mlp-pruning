@@ -163,7 +163,7 @@ python -m torch.distributed.launch \
     --master_port $MASTER_PORT \
     train.py \
         --force \
-        --n_gpu $WORLD_SIZE \
+        --gpus $WORLD_SIZE \
         --student_type distilbert \
         --student_config training_configs/distilbert-base-uncased.json \
         --teacher_type bert \

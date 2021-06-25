@@ -17,7 +17,6 @@
 import unittest
 
 from transformers import BertConfig, is_tf_available
-from transformers.models.auto import get_values
 from transformers.testing_utils import require_tf, slow
 
 from .test_configuration_common import ConfigTester
@@ -274,16 +273,13 @@ class TFBertModelTest(TFModelTesterMixin, unittest.TestCase):
         if is_tf_available()
         else ()
     )
-    test_head_masking = False
-    test_onnx = True
-    onnx_min_opset = 10
 
     # special case for ForPreTraining model
     def _prepare_for_class(self, inputs_dict, model_class, return_labels=False):
         inputs_dict = super()._prepare_for_class(inputs_dict, model_class, return_labels=return_labels)
 
         if return_labels:
-            if model_class in get_values(TF_MODEL_FOR_PRETRAINING_MAPPING):
+            if model_class in TF_MODEL_FOR_PRETRAINING_MAPPING.values():
                 inputs_dict["next_sentence_label"] = tf.zeros(self.model_tester.batch_size, dtype=tf.int32)
 
         return inputs_dict
@@ -344,17 +340,15 @@ class TFBertModelTest(TFModelTesterMixin, unittest.TestCase):
             assert isinstance(model.get_input_embeddings(), tf.keras.layers.Layer)
 
             if model_class in list_lm_models:
-                x = model.get_output_embeddings()
+                x = model.get_output_layer_with_bias()
                 assert isinstance(x, tf.keras.layers.Layer)
-                name = model.get_bias()
-                assert isinstance(name, dict)
-                for k, v in name.items():
-                    assert isinstance(v, tf.Variable)
+                name = model.get_prefix_bias_name()
+                assert isinstance(name, str)
             else:
-                x = model.get_output_embeddings()
+                x = model.get_output_layer_with_bias()
                 assert x is None
-                name = model.get_bias()
-                assert name is None
+                name = model.get_prefix_bias_name()
+                assert x is None
 
     def test_custom_load_tf_weights(self):
         model, output_loading_info = TFBertForTokenClassification.from_pretrained(

@@ -28,15 +28,8 @@ will dig a little bit more and see how the library gives you access to those mod
 Getting started on a task with a pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The easiest way to use a pretrained model on a given task is to use :func:`~transformers.pipeline`.
-
-.. raw:: html
-
-   <iframe width="560" height="315" src="https://www.youtube.com/embed/tiZFewofSLM" title="YouTube video player"
-   frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
-   picture-in-picture" allowfullscreen></iframe>
-
-🤗 Transformers provides the following tasks out of the box:
+The easiest way to use a pretrained model on a given task is to use :func:`~transformers.pipeline`. 🤗 Transformers
+provides the following tasks out of the box:
 
 - Sentiment analysis: is a text positive or negative?
 - Text generation (in English): provide a prompt and the model will generate what follows.
@@ -144,15 +137,8 @@ to share your fine-tuned model on the hub with the community, using :doc:`this t
 Under the hood: pretrained models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Let's now see what happens beneath the hood when using those pipelines.
-
-.. raw:: html
-
-   <iframe width="560" height="315" src="https://www.youtube.com/embed/AhChOFRegn4" title="YouTube video player"
-   frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
-   picture-in-picture" allowfullscreen></iframe>
-
-As we saw, the model and tokenizer are created using the :obj:`from_pretrained` method:
+Let's now see what happens beneath the hood when using those pipelines. As we saw, the model and tokenizer are created
+using the :obj:`from_pretrained` method:
 
 .. code-block::
 
@@ -172,7 +158,7 @@ Using the tokenizer
 
 We mentioned the tokenizer is responsible for the preprocessing of your texts. First, it will split a given text in
 words (or part of words, punctuation symbols, etc.) usually called `tokens`. There are multiple rules that can govern
-that process (you can learn more about them in the :doc:`tokenizer summary <tokenizer_summary>`), which is why we need
+that process (you can learn more about them in the :doc:`tokenizer summary <tokenizer_summary>`, which is why we need
 to instantiate the tokenizer using the name of the model, to make sure we use the same rules as when the model was
 pretrained.
 
@@ -252,22 +238,23 @@ keys directly to tensors, for a PyTorch model, you need to unpack the dictionary
     >>> ## TENSORFLOW CODE
     >>> tf_outputs = tf_model(tf_batch)
 
-In 🤗 Transformers, all outputs are objects that contain the model's final activations along with other metadata. These
-objects are described in greater detail :doc:`here <main_classes/output>`. For now, let's inspect the output ourselves:
+In 🤗 Transformers, all outputs are tuples (with only one element potentially). Here, we get a tuple with just the final
+activations of the model.
 
 .. code-block::
 
     >>> ## PYTORCH CODE
     >>> print(pt_outputs)
-    SequenceClassifierOutput(loss=None, logits=tensor([[-4.0833,  4.3364],
-        [ 0.0818, -0.0418]], grad_fn=<AddmmBackward>), hidden_states=None, attentions=None)
+    (tensor([[-4.0833,  4.3364],
+            [ 0.0818, -0.0418]], grad_fn=<AddmmBackward>),)
     >>> ## TENSORFLOW CODE
     >>> print(tf_outputs)
-    TFSequenceClassifierOutput(loss=None, logits=<tf.Tensor: shape=(2, 2), dtype=float32, numpy=
-    array([[-4.0832963 ,  4.3364143 ],
-           [ 0.081807  , -0.04178282]], dtype=float32)>, hidden_states=None, attentions=None)
+    (<tf.Tensor: shape=(2, 2), dtype=float32, numpy=
+    array([[-4.0832963 ,  4.336414  ],
+           [ 0.08181786, -0.04179301]], dtype=float32)>,)
 
-Notice how the output object has a ``logits`` attribute. You can use this to access the model's final activations.
+The model can return more than just the final activations, which is why the output is a tuple. Here we only asked for
+the final activations, so we get a tuple with one element.
 
 .. note::
 
@@ -279,11 +266,11 @@ Let's apply the SoftMax activation to get predictions.
 .. code-block::
 
     >>> ## PYTORCH CODE
-    >>> from torch import nn
-    >>> pt_predictions = nn.functional.softmax(pt_outputs.logits, dim=-1)
+    >>> import torch.nn.functional as F
+    >>> pt_predictions = F.softmax(pt_outputs[0], dim=-1)
     >>> ## TENSORFLOW CODE
     >>> import tensorflow as tf
-    >>> tf.nn.softmax(tf_outputs.logits, axis=-1)
+    >>> tf_predictions = tf.nn.softmax(tf_outputs[0], axis=-1)
 
 We can see we get the numbers from before:
 
@@ -299,24 +286,16 @@ We can see we get the numbers from before:
     tensor([[2.2043e-04, 9.9978e-01],
             [5.3086e-01, 4.6914e-01]], grad_fn=<SoftmaxBackward>)
 
-If you provide the model with labels in addition to inputs, the model output object will also contain a ``loss``
-attribute:
+If you have labels, you can provide them to the model, it will return a tuple with the loss and the final activations.
 
 .. code-block::
 
     >>> ## PYTORCH CODE
     >>> import torch
     >>> pt_outputs = pt_model(**pt_batch, labels = torch.tensor([1, 0]))
-    >>> print(pt_outputs)
-    SequenceClassifierOutput(loss=tensor(0.3167, grad_fn=<NllLossBackward>), logits=tensor([[-4.0833,  4.3364],
-    [ 0.0818, -0.0418]], grad_fn=<AddmmBackward>), hidden_states=None, attentions=None)
     >>> ## TENSORFLOW CODE
     >>> import tensorflow as tf
     >>> tf_outputs = tf_model(tf_batch, labels = tf.constant([1, 0]))
-    >>> print(tf_outputs)
-    TFSequenceClassifierOutput(loss=<tf.Tensor: shape=(2,), dtype=float32, numpy=array([2.2051287e-04, 6.3326043e-01], dtype=float32)>, logits=<tf.Tensor: shape=(2, 2), dtype=float32, numpy=
-    array([[-4.0832963 ,  4.3364143 ],
-           [ 0.081807  , -0.04178282]], dtype=float32)>, hidden_states=None, attentions=None)
 
 Models are standard `torch.nn.Module <https://pytorch.org/docs/stable/nn.html#torch.nn.Module>`__ or `tf.keras.Model
 <https://www.tensorflow.org/api_docs/python/tf/keras/Model>`__ so you can use them in your usual training loop. 🤗
@@ -344,7 +323,6 @@ loading a saved PyTorch model in a TensorFlow model, use :func:`~transformers.TF
 
 .. code-block::
 
-    from transformers import TFAutoModel
     tokenizer = AutoTokenizer.from_pretrained(save_directory)
     model = TFAutoModel.from_pretrained(save_directory, from_pt=True)
 
@@ -352,7 +330,6 @@ and if you are loading a saved TensorFlow model in a PyTorch model, you should u
 
 .. code-block::
 
-    from transformers import AutoModel
     tokenizer = AutoTokenizer.from_pretrained(save_directory)
     model = AutoModel.from_pretrained(save_directory, from_tf=True)
 
@@ -363,12 +340,10 @@ Lastly, you can also ask the model to return all hidden states and all attention
 
     >>> ## PYTORCH CODE
     >>> pt_outputs = pt_model(**pt_batch, output_hidden_states=True, output_attentions=True)
-    >>> all_hidden_states  = pt_outputs.hidden_states 
-    >>> all_attentions = pt_outputs.attentions
+    >>> all_hidden_states, all_attentions = pt_outputs[-2:]
     >>> ## TENSORFLOW CODE
     >>> tf_outputs = tf_model(tf_batch, output_hidden_states=True, output_attentions=True)
-    >>> all_hidden_states =  tf_outputs.hidden_states
-    >>> all_attentions = tf_outputs.attentions
+    >>> all_hidden_states, all_attentions = tf_outputs[-2:]
 
 Accessing the code
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -401,16 +376,16 @@ directly instantiate model and tokenizer without the auto magic:
 Customizing the model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you want to change how the model itself is built, you can define a custom configuration class. Each architecture
-comes with its own relevant configuration. For example, :class:`~transformers.DistilBertConfig` allows you to specify
-parameters such as the hidden dimension, dropout rate, etc for DistilBERT. If you do core modifications, like changing
-the hidden size, you won't be able to use a pretrained model anymore and will need to train from scratch. You would
-then instantiate the model directly from this configuration.
+If you want to change how the model itself is built, you can define your custom configuration class. Each architecture
+comes with its own relevant configuration (in the case of DistilBERT, :class:`~transformers.DistilBertConfig`) which
+allows you to specify any of the hidden dimension, dropout rate, etc. If you do core modifications, like changing the
+hidden size, you won't be able to use a pretrained model anymore and will need to train from scratch. You would then
+instantiate the model directly from this configuration.
 
-Below, we load a predefined vocabulary for a tokenizer with the
-:func:`~transformers.DistilBertTokenizer.from_pretrained` method. However, unlike the tokenizer, we wish to initialize
-the model from scratch. Therefore, we instantiate the model from a configuration instead of using the
-:func:`~transformers.DistilBertForSequenceClassification.from_pretrained` method.
+Here we use the predefined vocabulary of DistilBERT (hence load the tokenizer with the
+:func:`~transformers.DistilBertTokenizer.from_pretrained` method) and initialize the model from scratch (hence
+instantiate the model from the configuration instead of using the
+:func:`~transformers.DistilBertForSequenceClassification.from_pretrained` method).
 
 .. code-block::
 
@@ -427,9 +402,9 @@ the model from scratch. Therefore, we instantiate the model from a configuration
 
 For something that only changes the head of the model (for instance, the number of labels), you can still use a
 pretrained model for the body. For instance, let's define a classifier for 10 different labels using a pretrained body.
-Instead of creating a new configuration with all the default values just to change the number of labels, we can instead
-pass any argument a configuration would take to the :func:`from_pretrained` method and it will update the default
-configuration appropriately:
+We could create a configuration with all the default values and just change the number of labels, but more easily, you
+can directly pass any argument a configuration would take to the :func:`from_pretrained` method and it will update the
+default configuration with it:
 
 .. code-block::
 

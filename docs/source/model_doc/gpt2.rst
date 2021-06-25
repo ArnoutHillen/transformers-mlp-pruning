@@ -45,8 +45,7 @@ Tips:
 Hugging Face showcasing the generative capabilities of several models. GPT-2 is one of them and is available in five
 different sizes: small, medium, large, xl and a distilled version of the small checkpoint: `distilgpt-2`.
 
-This model was contributed by `thomwolf <https://huggingface.co/thomwolf>`__. The original code can be found `here
-<https://openai.com/blog/better-language-models/>`__.
+The original code can be found `here <https://openai.com/blog/better-language-models/>`__.
 
 
 GPT2Config
@@ -139,17 +138,3 @@ TFSequenceClassifierOutputWithPast
 
 .. autoclass:: transformers.modeling_tf_outputs.TFSequenceClassifierOutputWithPast
     :members:
-
-
-FlaxGPT2Model
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.FlaxGPT2Model
-    :members: __call__
-
-
-FlaxGPT2LMHeadModel
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.FlaxGPT2LMHeadModel
-    :members: __call__

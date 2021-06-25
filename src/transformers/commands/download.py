@@ -14,7 +14,7 @@
 
 from argparse import ArgumentParser
 
-from . import BaseTransformersCLICommand
+from transformers.commands import BaseTransformersCLICommand
 
 
 def download_command_factory(args):
@@ -40,7 +40,7 @@ class DownloadCommand(BaseTransformersCLICommand):
         self._force = force
 
     def run(self):
-        from ..models.auto import AutoModel, AutoTokenizer
+        from transformers import AutoModel, AutoTokenizer
 
         AutoModel.from_pretrained(self._model, cache_dir=self._cache, force_download=self._force)
         AutoTokenizer.from_pretrained(self._model, cache_dir=self._cache, force_download=self._force)

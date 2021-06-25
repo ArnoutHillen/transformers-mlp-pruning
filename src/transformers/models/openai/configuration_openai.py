@@ -136,6 +136,7 @@ class OpenAIGPTConfig(PretrainedConfig):
         summary_activation=None,
         summary_proj_to_labels=True,
         summary_first_dropout=0.1,
+        use_cache=True,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -158,6 +159,7 @@ class OpenAIGPTConfig(PretrainedConfig):
         self.summary_activation = summary_activation
         self.summary_first_dropout = summary_first_dropout
         self.summary_proj_to_labels = summary_proj_to_labels
+        self.use_cache = use_cache
 
     @property
     def max_position_embeddings(self):

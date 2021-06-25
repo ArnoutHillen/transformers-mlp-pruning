@@ -32,7 +32,7 @@ class TQAPipelineTests(CustomInputPipelineCommonMixin, unittest.TestCase):
         "lysandre/tiny-tapas-random-wtq",
         "lysandre/tiny-tapas-random-sqa",
     ]
-    large_models = ["google/tapas-base-finetuned-wtq"]  # Models tested with the @slow decorator
+    large_models = ["nielsr/tapas-base-finetuned-wtq"]  # Models tested with the @slow decorator
     valid_inputs = [
         {
             "table": {
@@ -131,49 +131,6 @@ class TQAPipelineTests(CustomInputPipelineCommonMixin, unittest.TestCase):
         self.assertIsInstance(table_querier.model.config.aggregation_labels, dict)
         self.assertIsInstance(table_querier.model.config.no_aggregation_label_index, int)
 
-        with self.assertRaises(ValueError):
-            table_querier(
-                {
-                    "table": {},
-                    "query": "how many movies has george clooney played in?",
-                }
-            )
-        with self.assertRaises(ValueError):
-            table_querier(
-                {
-                    "query": "how many movies has george clooney played in?",
-                }
-            )
-        with self.assertRaises(ValueError):
-            table_querier(
-                {
-                    "table": {
-                        "Repository": ["Transformers", "Datasets", "Tokenizers"],
-                        "Stars": ["36542", "4512", "3934"],
-                        "Contributors": ["651", "77", "34"],
-                        "Programming language": ["Python", "Python", "Rust, Python and NodeJS"],
-                    },
-                    "query": "",
-                }
-            )
-        with self.assertRaises(ValueError):
-            table_querier(
-                {
-                    "table": {
-                        "Repository": ["Transformers", "Datasets", "Tokenizers"],
-                        "Stars": ["36542", "4512", "3934"],
-                        "Contributors": ["651", "77", "34"],
-                        "Programming language": ["Python", "Python", "Rust, Python and NodeJS"],
-                    },
-                }
-            )
-
-    def test_empty_errors(self):
-        table_querier = pipeline(
-            "table-question-answering",
-            model="lysandre/tiny-tapas-random-wtq",
-            tokenizer="lysandre/tiny-tapas-random-wtq",
-        )
         mono_result = table_querier(self.valid_inputs[0], sequential=True)
         multi_result = table_querier(self.valid_inputs, sequential=True)
 
@@ -214,7 +171,7 @@ class TQAPipelineTests(CustomInputPipelineCommonMixin, unittest.TestCase):
 
     @slow
     def test_integration_wtq(self):
-        table_querier = pipeline("table-question-answering")
+        tqa_pipeline = pipeline("table-question-answering")
 
         data = {
             "Repository": ["Transformers", "Datasets", "Tokenizers"],
@@ -230,38 +187,35 @@ class TQAPipelineTests(CustomInputPipelineCommonMixin, unittest.TestCase):
             "What is the total amount of stars?",
         ]
 
-        results = table_querier(data, queries)
+        results = tqa_pipeline(data, queries)
 
         expected_results = [
-            {"answer": "Transformers", "coordinates": [(0, 0)], "cells": ["Transformers"], "aggregator": "NONE"},
-            {"answer": "Transformers", "coordinates": [(0, 0)], "cells": ["Transformers"], "aggregator": "NONE"},
+            {"answer": "Transformers", "coordinates": [(0, 0)], "cells": ["Transformers"]},
+            {"answer": "Transformers", "coordinates": [(0, 0)], "cells": ["Transformers"]},
             {
-                "answer": "COUNT > Transformers, Datasets, Tokenizers",
+                "answer": "Transformers, Datasets, Tokenizers",
                 "coordinates": [(0, 0), (1, 0), (2, 0)],
                 "cells": ["Transformers", "Datasets", "Tokenizers"],
-                "aggregator": "COUNT",
             },
             {
-                "answer": "AVERAGE > 36542, 4512, 3934",
+                "answer": "36542, 4512, 3934",
                 "coordinates": [(0, 1), (1, 1), (2, 1)],
                 "cells": ["36542", "4512", "3934"],
-                "aggregator": "AVERAGE",
             },
             {
-                "answer": "SUM > 36542, 4512, 3934",
+                "answer": "36542, 4512, 3934",
                 "coordinates": [(0, 1), (1, 1), (2, 1)],
                 "cells": ["36542", "4512", "3934"],
-                "aggregator": "SUM",
             },
         ]
         self.assertListEqual(results, expected_results)
 
     @slow
     def test_integration_sqa(self):
-        table_querier = pipeline(
+        tqa_pipeline = pipeline(
             "table-question-answering",
-            model="google/tapas-base-finetuned-sqa",
-            tokenizer="google/tapas-base-finetuned-sqa",
+            model="nielsr/tapas-base-finetuned-sqa",
+            tokenizer="nielsr/tapas-base-finetuned-sqa",
         )
         data = {
             "Actors": ["Brad Pitt", "Leonardo Di Caprio", "George Clooney"],
@@ -270,7 +224,7 @@ class TQAPipelineTests(CustomInputPipelineCommonMixin, unittest.TestCase):
             "Date of birth": ["7 february 1967", "10 june 1996", "28 november 1967"],
         }
         queries = ["How many movies has George Clooney played in?", "How old is he?", "What's his date of birth?"]
-        results = table_querier(data, queries, sequential=True)
+        results = tqa_pipeline(data, queries, sequential=True)
 
         expected_results = [
             {"answer": "69", "coordinates": [(2, 2)], "cells": ["69"]},

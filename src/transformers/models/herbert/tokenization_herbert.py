@@ -26,12 +26,8 @@ VOCAB_FILES_NAMES = {
 }
 
 PRETRAINED_VOCAB_FILES_MAP = {
-    "vocab_file": {
-        "allegro/herbert-base-cased": "https://huggingface.co/allegro/herbert-base-cased/resolve/main/vocab.json"
-    },
-    "merges_file": {
-        "allegro/herbert-base-cased": "https://huggingface.co/allegro/herbert-base-cased/resolve/main/merges.txt"
-    },
+    "vocab_file": {"allegro/herbert-base-cased": "https://cdn.huggingface.co/allegro/herbert-base-cased/vocab.json"},
+    "merges_file": {"allegro/herbert-base-cased": "https://cdn.huggingface.co/allegro/herbert-base-cased/merges.txt"},
 }
 
 PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {"allegro/herbert-base-cased": 514}
@@ -58,37 +54,19 @@ class HerbertTokenizer(XLMTokenizer):
     pretrained_init_configuration = PRETRAINED_INIT_CONFIGURATION
     max_model_input_sizes = PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES
 
-    def __init__(
-        self,
-        vocab_file,
-        merges_file,
-        tokenizer_file=None,
-        cls_token="<s>",
-        unk_token="<unk>",
-        pad_token="<pad>",
-        mask_token="<mask>",
-        sep_token="</s>",
-        do_lowercase_and_remove_accent=False,
-        **kwargs
-    ):
+    def __init__(self, **kwargs):
 
-        super().__init__(
-            vocab_file,
-            merges_file,
-            tokenizer_file=None,
-            cls_token=cls_token,
-            unk_token=unk_token,
-            pad_token=pad_token,
-            mask_token=mask_token,
-            sep_token=sep_token,
-            do_lowercase_and_remove_accent=do_lowercase_and_remove_accent,
-            **kwargs,
-        )
+        kwargs["cls_token"] = "<s>"
+        kwargs["unk_token"] = "<unk>"
+        kwargs["pad_token"] = "<pad>"
+        kwargs["mask_token"] = "<mask>"
+        kwargs["sep_token"] = "</s>"
+        kwargs["do_lowercase_and_remove_accent"] = False
+        kwargs["additional_special_tokens"] = []
+
+        super().__init__(**kwargs)
         self.bert_pre_tokenizer = BasicTokenizer(
-            do_lower_case=False,
-            never_split=self.all_special_tokens,
-            tokenize_chinese_chars=False,
-            strip_accents=False,
+            do_lower_case=False, never_split=self.all_special_tokens, tokenize_chinese_chars=False, strip_accents=False
         )
 
     def _tokenize(self, text):

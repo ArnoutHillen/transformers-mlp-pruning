@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding=utf-8
 # Copyright 2018 Google AI, Google Brain and Carnegie Mellon University Authors and the HuggingFace Inc. team.
 # Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
@@ -61,7 +60,7 @@ def accuracy(out, labels):
 
 
 def load_rocstories_dataset(dataset_path):
-    """Output a list of tuples(story, 1st continuation, 2nd continuation, label)"""
+    """ Output a list of tuples(story, 1st continuation, 2nd continuation, label) """
     with open(dataset_path, encoding="utf_8") as f:
         f = csv.reader(f)
         output = []
@@ -184,7 +183,7 @@ def main():
 
     # Load and encode the datasets
     def tokenize_and_encode(obj):
-        """Tokenize and encode a nested object"""
+        """ Tokenize and encode a nested object """
         if isinstance(obj, str):
             return tokenizer.convert_tokens_to_ids(tokenizer.tokenize(obj))
         elif isinstance(obj, int):

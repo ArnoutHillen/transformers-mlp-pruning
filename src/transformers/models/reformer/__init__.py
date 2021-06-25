@@ -16,71 +16,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TYPE_CHECKING
+from ...file_utils import is_sentencepiece_available, is_tokenizers_available, is_torch_available
+from .configuration_reformer import REFORMER_PRETRAINED_CONFIG_ARCHIVE_MAP, ReformerConfig
 
-from ...file_utils import _BaseLazyModule, is_sentencepiece_available, is_tokenizers_available, is_torch_available
-
-
-_import_structure = {
-    "configuration_reformer": ["REFORMER_PRETRAINED_CONFIG_ARCHIVE_MAP", "ReformerConfig"],
-}
 
 if is_sentencepiece_available():
-    _import_structure["tokenization_reformer"] = ["ReformerTokenizer"]
+    from .tokenization_reformer import ReformerTokenizer
 
 if is_tokenizers_available():
-    _import_structure["tokenization_reformer_fast"] = ["ReformerTokenizerFast"]
+    from .tokenization_reformer_fast import ReformerTokenizerFast
 
 if is_torch_available():
-    _import_structure["modeling_reformer"] = [
-        "REFORMER_PRETRAINED_MODEL_ARCHIVE_LIST",
-        "ReformerAttention",
-        "ReformerForMaskedLM",
-        "ReformerForQuestionAnswering",
-        "ReformerForSequenceClassification",
-        "ReformerLayer",
-        "ReformerModel",
-        "ReformerModelWithLMHead",
-        "ReformerPreTrainedModel",
-    ]
-
-
-if TYPE_CHECKING:
-    from .configuration_reformer import REFORMER_PRETRAINED_CONFIG_ARCHIVE_MAP, ReformerConfig
-
-    if is_sentencepiece_available():
-        from .tokenization_reformer import ReformerTokenizer
-
-    if is_tokenizers_available():
-        from .tokenization_reformer_fast import ReformerTokenizerFast
-
-    if is_torch_available():
-        from .modeling_reformer import (
-            REFORMER_PRETRAINED_MODEL_ARCHIVE_LIST,
-            ReformerAttention,
-            ReformerForMaskedLM,
-            ReformerForQuestionAnswering,
-            ReformerForSequenceClassification,
-            ReformerLayer,
-            ReformerModel,
-            ReformerModelWithLMHead,
-            ReformerPreTrainedModel,
-        )
-
-else:
-    import importlib
-    import os
-    import sys
-
-    class _LazyModule(_BaseLazyModule):
-        """
-        Module class that surfaces all objects but only performs associated imports when the objects are requested.
-        """
-
-        __file__ = globals()["__file__"]
-        __path__ = [os.path.dirname(__file__)]
-
-        def _get_module(self, module_name: str):
-            return importlib.import_module("." + module_name, self.__name__)
-
-    sys.modules[__name__] = _LazyModule(__name__, _import_structure)
+    from .modeling_reformer import (
+        REFORMER_PRETRAINED_MODEL_ARCHIVE_LIST,
+        ReformerAttention,
+        ReformerForMaskedLM,
+        ReformerForQuestionAnswering,
+        ReformerForSequenceClassification,
+        ReformerLayer,
+        ReformerModel,
+        ReformerModelWithLMHead,
+    )

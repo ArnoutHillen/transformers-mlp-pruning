@@ -38,23 +38,19 @@ class FuncNonContiguousArgs:
 
 
 class OnnxExportTestCase(unittest.TestCase):
-    MODEL_TO_TEST = [
-        # (model_name, model_kwargs)
-        ("bert-base-cased", {}),
-        ("gpt2", {"use_cache": False}),  # We don't support exporting GPT2 past keys anymore
-    ]
+    MODEL_TO_TEST = ["bert-base-cased", "gpt2", "roberta-base"]
 
     @require_tf
     @slow
     def test_export_tensorflow(self):
-        for model, model_kwargs in OnnxExportTestCase.MODEL_TO_TEST:
-            self._test_export(model, "tf", 12, **model_kwargs)
+        for model in OnnxExportTestCase.MODEL_TO_TEST:
+            self._test_export(model, "tf", 12)
 
     @require_torch
     @slow
     def test_export_pytorch(self):
-        for model, model_kwargs in OnnxExportTestCase.MODEL_TO_TEST:
-            self._test_export(model, "pt", 12, **model_kwargs)
+        for model in OnnxExportTestCase.MODEL_TO_TEST:
+            self._test_export(model, "pt", 12)
 
     @require_torch
     @slow
@@ -75,8 +71,8 @@ class OnnxExportTestCase(unittest.TestCase):
     @require_tf
     @slow
     def test_quantize_tf(self):
-        for model, model_kwargs in OnnxExportTestCase.MODEL_TO_TEST:
-            path = self._test_export(model, "tf", 12, **model_kwargs)
+        for model in OnnxExportTestCase.MODEL_TO_TEST:
+            path = self._test_export(model, "tf", 12)
             quantized_path = quantize(Path(path))
 
             # Ensure the actual quantized model is not bigger than the original one
@@ -86,15 +82,15 @@ class OnnxExportTestCase(unittest.TestCase):
     @require_torch
     @slow
     def test_quantize_pytorch(self):
-        for model, model_kwargs in OnnxExportTestCase.MODEL_TO_TEST:
-            path = self._test_export(model, "pt", 12, **model_kwargs)
+        for model in OnnxExportTestCase.MODEL_TO_TEST:
+            path = self._test_export(model, "pt", 12)
             quantized_path = quantize(path)
 
             # Ensure the actual quantized model is not bigger than the original one
             if quantized_path.stat().st_size >= Path(path).stat().st_size:
                 self.fail("Quantized model is bigger than initial ONNX model")
 
-    def _test_export(self, model, framework, opset, tokenizer=None, **model_kwargs):
+    def _test_export(self, model, framework, opset, tokenizer=None):
         try:
             # Compute path
             with TemporaryDirectory() as tempdir:
@@ -105,7 +101,7 @@ class OnnxExportTestCase(unittest.TestCase):
                 path.parent.rmdir()
 
             # Export
-            convert(framework, model, path, opset, tokenizer, **model_kwargs)
+            convert(framework, model, path, opset, tokenizer)
 
             return path
         except Exception as e:
@@ -138,10 +134,10 @@ class OnnxExportTestCase(unittest.TestCase):
         self._test_infer_dynamic_axis(model, tokenizer, "tf")
 
     def _test_infer_dynamic_axis(self, model, tokenizer, framework):
-        feature_extractor = FeatureExtractionPipeline(model, tokenizer)
+        nlp = FeatureExtractionPipeline(model, tokenizer)
 
         variable_names = ["input_ids", "token_type_ids", "attention_mask", "output_0", "output_1"]
-        input_vars, output_vars, shapes, tokens = infer_shapes(feature_extractor, framework)
+        input_vars, output_vars, shapes, tokens = infer_shapes(nlp, framework)
 
         # Assert all variables are present
         self.assertEqual(len(shapes), len(variable_names))

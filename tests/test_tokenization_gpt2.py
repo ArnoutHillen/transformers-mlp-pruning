@@ -32,7 +32,6 @@ class GPT2TokenizationTest(TokenizerTesterMixin, unittest.TestCase):
     rust_tokenizer_class = GPT2TokenizerFast
     test_rust_tokenizer = True
     from_pretrained_kwargs = {"add_prefix_space": True}
-    test_seq2seq = False
 
     def setUp(self):
         super().setUp()
@@ -133,7 +132,7 @@ class GPT2TokenizationTest(TokenizerTesterMixin, unittest.TestCase):
 
     def test_padding(self, max_length=15):
         for tokenizer, pretrained_name, kwargs in self.tokenizers_list:
-            with self.subTest(f"{tokenizer.__class__.__name__} ({pretrained_name})"):
+            with self.subTest("{} ({})".format(tokenizer.__class__.__name__, pretrained_name)):
                 tokenizer_r = self.rust_tokenizer_class.from_pretrained(pretrained_name, **kwargs)
 
                 # Simple input
@@ -174,7 +173,3 @@ class GPT2TokenizationTest(TokenizerTesterMixin, unittest.TestCase):
                     max_length=max_length,
                     padding="max_length",
                 )
-
-    # tokenizer has no padding token
-    def test_padding_different_model_input_name(self):
-        pass

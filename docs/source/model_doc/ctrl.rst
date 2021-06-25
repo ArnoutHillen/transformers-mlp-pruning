@@ -46,8 +46,7 @@ Tips:
   `reusing the past in generative models <../quickstart.html#using-the-past>`__ for more information on the usage of
   this argument.
 
-This model was contributed by `keskarnitishr <https://huggingface.co/keskarnitishr>`__. The original code can be found
-`here <https://github.com/salesforce/ctrl>`__.
+The original code can be found `here <https://github.com/salesforce/ctrl>`__.
 
 
 CTRLConfig
@@ -98,8 +97,3 @@ TFCTRLLMHeadModel
 .. autoclass:: transformers.TFCTRLLMHeadModel
     :members: call
 
-TFCTRLForSequenceClassification
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.TFCTRLForSequenceClassification
-    :members: call

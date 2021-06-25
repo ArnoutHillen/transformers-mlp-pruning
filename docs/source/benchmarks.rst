@@ -15,8 +15,8 @@ Benchmarks
 
 Let's take a look at how 🤗 Transformer models can be benchmarked, best practices, and already available benchmarks.
 
-A notebook explaining in more detail how to benchmark 🤗 Transformer models can be found :prefix_link:`here
-<notebooks/05-benchmark.ipynb>`.
+A notebook explaining in more detail how to benchmark 🤗 Transformer models can be found `here
+<https://github.com/huggingface/transformers/blob/master/notebooks/05-benchmark.ipynb>`__.
 
 How to benchmark 🤗 Transformer models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -65,10 +65,10 @@ respectively.
 .. code-block:: bash
 
     ## PYTORCH CODE
-    python examples/pytorch/benchmarking/run_benchmark.py --help
+    python examples/benchmarking/run_benchmark.py --help
 
     ## TENSORFLOW CODE
-    python examples/tensorflow/benchmarking/run_benchmark_tf.py --help
+    python examples/benchmarking/run_benchmark_tf.py --help
 
 
 An instantiated benchmark object can then simply be run by calling ``benchmark.run()``.
@@ -99,7 +99,6 @@ An instantiated benchmark object can then simply be run by calling ``benchmark.r
     --------------------------------------------------------------------------------
 
     ====================        ENVIRONMENT INFORMATION         ====================
-
     - transformers_version: 2.11.0
     - framework: PyTorch
     - use_torchscript: False
@@ -146,7 +145,6 @@ An instantiated benchmark object can then simply be run by calling ``benchmark.r
     --------------------------------------------------------------------------------
 
     ====================        ENVIRONMENT INFORMATION         ====================
-
     - transformers_version: 2.11.0
     - framework: Tensorflow
     - use_xla: False
@@ -230,7 +228,6 @@ configurations must be inserted with the benchmark args as follows.
     --------------------------------------------------------------------------------
 
     ====================        ENVIRONMENT INFORMATION         ====================
-
     - transformers_version: 2.11.0
     - framework: PyTorch
     - use_torchscript: False
@@ -300,7 +297,6 @@ configurations must be inserted with the benchmark args as follows.
     --------------------------------------------------------------------------------
 
     ====================        ENVIRONMENT INFORMATION         ====================
-
     - transformers_version: 2.11.0
     - framework: Tensorflow
     - use_xla: False
@@ -357,7 +353,5 @@ The approach is detailed in the `following blogpost
 available `here
 <https://docs.google.com/spreadsheets/d/1sryqufw2D0XlUH4sq3e9Wnxu5EAQkaohzrJbd5HdQ_w/edit?usp=sharing>`__.
 
-With the new `benchmark` tools, it is easier than ever to share your benchmark results with the community
-
-- :prefix_link:`PyTorch Benchmarking Results<examples/pytorch/benchmarking/README.md>`.
-- :prefix_link:`TensorFlow Benchmarking Results<examples/tensorflow/benchmarking/README.md>`.
+With the new `benchmark` tools, it is easier than ever to share your benchmark results with the community `here
+<https://github.com/huggingface/transformers/blob/master/examples/benchmarking/README.md>`__.

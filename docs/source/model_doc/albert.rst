@@ -43,8 +43,7 @@ Tips:
   similar to a BERT-like architecture with the same number of hidden layers as it has to iterate through the same
   number of (repeating) layers.
 
-This model was contributed by `lysandre <https://huggingface.co/lysandre>`__. The original code can be found `here
-<https://github.com/google-research/ALBERT>`__.
+The original code can be found `here <https://github.com/google-research/ALBERT>`__.
 
 AlbertConfig
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

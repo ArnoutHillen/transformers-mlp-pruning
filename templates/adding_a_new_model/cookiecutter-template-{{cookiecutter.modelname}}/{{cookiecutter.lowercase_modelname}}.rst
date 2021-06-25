@@ -10,7 +10,7 @@
     an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
     specific language governing permissions and limitations under the License.
 
-{{cookiecutter.modelname}}
+{{cookiecutter.uppercase_modelname}}
 -----------------------------------------------------------------------------------------------------------------------
 
 Overview
@@ -26,10 +26,6 @@ The abstract from the paper is the following:
 Tips:
 
 <INSERT TIPS ABOUT MODEL HERE>
-
-This model was contributed by `<INSERT YOUR HF USERNAME HERE> 
-<https://huggingface.co/<INSERT YOUR HF USERNAME HERE>>`__. The original code can be found `here 
-<<INSERT LINK TO GITHUB REPO HERE>>`__.
 
 {{cookiecutter.camelcase_modelname}}Config
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,7 +46,8 @@ This model was contributed by `<INSERT YOUR HF USERNAME HERE>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.{{cookiecutter.camelcase_modelname}}TokenizerFast
-    :members:
+    :members: build_inputs_with_special_tokens, get_special_tokens_mask,
+        create_token_type_ids_from_sequences, save_vocabulary
 
 
 {% if "PyTorch" in cookiecutter.generate_tensorflow_and_pytorch -%}
@@ -60,7 +57,7 @@ This model was contributed by `<INSERT YOUR HF USERNAME HERE>
 .. autoclass:: transformers.{{cookiecutter.camelcase_modelname}}Model
     :members: forward
 
-{% if cookiecutter.is_encoder_decoder_model == "False" %}
+
 {{cookiecutter.camelcase_modelname}}ForCausalLM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -86,7 +83,7 @@ This model was contributed by `<INSERT YOUR HF USERNAME HERE>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.{{cookiecutter.camelcase_modelname}}ForMultipleChoice
-    :members: forward
+    :members:
 
 
 {{cookiecutter.camelcase_modelname}}ForTokenClassification
@@ -102,36 +99,6 @@ This model was contributed by `<INSERT YOUR HF USERNAME HERE>
 .. autoclass:: transformers.{{cookiecutter.camelcase_modelname}}ForQuestionAnswering
     :members: forward
 
-{%- else %}
-{{cookiecutter.camelcase_modelname}}ForConditionalGeneration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.{{cookiecutter.camelcase_modelname}}ForConditionalGeneration
-    :members: forward
-
-
-{{cookiecutter.camelcase_modelname}}ForSequenceClassification
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.{{cookiecutter.camelcase_modelname}}ForSequenceClassification
-    :members: forward
-
-
-{{cookiecutter.camelcase_modelname}}ForQuestionAnswering
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.{{cookiecutter.camelcase_modelname}}ForQuestionAnswering
-    :members: forward
-
-
-{{cookiecutter.camelcase_modelname}}ForCausalLM
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.{{cookiecutter.camelcase_modelname}}ForCausalLM
-    :members: forward
-
-
-{% endif -%}
 {% endif -%}
 {% if "TensorFlow" in cookiecutter.generate_tensorflow_and_pytorch -%}
 
@@ -141,7 +108,7 @@ TF{{cookiecutter.camelcase_modelname}}Model
 .. autoclass:: transformers.TF{{cookiecutter.camelcase_modelname}}Model
     :members: call
 
-{% if cookiecutter.is_encoder_decoder_model == "False" %}
+
 TF{{cookiecutter.camelcase_modelname}}ForMaskedLM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -153,7 +120,7 @@ TF{{cookiecutter.camelcase_modelname}}ForCausalLM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.TF{{cookiecutter.camelcase_modelname}}ForCausalLM
-    :members: call
+    :members: forward
 
 
 TF{{cookiecutter.camelcase_modelname}}ForSequenceClassification
@@ -184,13 +151,4 @@ TF{{cookiecutter.camelcase_modelname}}ForQuestionAnswering
     :members: call
 
 
-{%- else %}
-TF{{cookiecutter.camelcase_modelname}}ForConditionalGeneration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.TF{{cookiecutter.camelcase_modelname}}ForConditionalGeneration
-    :members: call
-
-
-{% endif -%}
 {% endif -%}

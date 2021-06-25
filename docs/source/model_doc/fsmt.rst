@@ -34,8 +34,7 @@ data, then decode using noisy channel model reranking. Our submissions are ranke
 human evaluation campaign. On En->De, our system significantly outperforms other systems as well as human translations.
 This system improves upon our WMT'18 submission by 4.5 BLEU points.*
 
-This model was contributed by `stas <https://huggingface.co/stas>`__. The original code can be found here
-<https://github.com/pytorch/fairseq/tree/master/examples/wmt19>__.
+The original code can be found here <https://github.com/pytorch/fairseq/tree/master/examples/wmt19>__.
 
 Implementation Notes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -57,7 +56,7 @@ FSMTTokenizer
 
 .. autoclass:: transformers.FSMTTokenizer
     :members: build_inputs_with_special_tokens, get_special_tokens_mask,
-        create_token_type_ids_from_sequences, save_vocabulary
+        create_token_type_ids_from_sequences, prepare_seq2seq_batch, save_vocabulary
 
 
 FSMTModel

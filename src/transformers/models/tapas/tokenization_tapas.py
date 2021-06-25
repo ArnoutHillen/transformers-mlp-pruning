@@ -28,13 +28,18 @@ from typing import Callable, Dict, Generator, List, Optional, Text, Tuple, Union
 
 import numpy as np
 
-from ...file_utils import ExplicitEnum, PaddingStrategy, TensorType, add_end_docstrings, is_pandas_available
+from transformers import add_end_docstrings
+
+from ...file_utils import is_pandas_available
 from ...tokenization_utils import PreTrainedTokenizer, _is_control, _is_punctuation, _is_whitespace
 from ...tokenization_utils_base import (
     ENCODE_KWARGS_DOCSTRING,
     BatchEncoding,
     EncodedInput,
+    ExplicitEnum,
+    PaddingStrategy,
     PreTokenizedInput,
+    TensorType,
     TextInput,
 )
 from ...utils import logging
@@ -50,41 +55,52 @@ VOCAB_FILES_NAMES = {"vocab_file": "vocab.txt"}
 
 PRETRAINED_VOCAB_FILES_MAP = {
     "vocab_file": {
-        # large models
-        "google/tapas-large-finetuned-sqa": "https://huggingface.co/google/tapas-large-finetuned-sqa/resolve/main/vocab.txt",
-        "google/tapas-large-finetuned-wtq": "https://huggingface.co/google/tapas-large-finetuned-wtq/resolve/main/vocab.txt",
-        "google/tapas-large-finetuned-wikisql-supervised": "https://huggingface.co/google/tapas-large-finetuned-wikisql-supervised/resolve/main/vocab.txt",
-        "google/tapas-large-finetuned-tabfact": "https://huggingface.co/google/tapas-large-finetuned-tabfact/resolve/main/vocab.txt",
-        # base models
         "google/tapas-base-finetuned-sqa": "https://huggingface.co/google/tapas-base-finetuned-sqa/resolve/main/vocab.txt",
         "google/tapas-base-finetuned-wtq": "https://huggingface.co/google/tapas-base-finetuned-wtq/resolve/main/vocab.txt",
         "google/tapas-base-finetuned-wikisql-supervised": "https://huggingface.co/google/tapas-base-finetuned-wikisql-supervised/resolve/main/vocab.txt",
         "google/tapas-base-finetuned-tabfact": "https://huggingface.co/google/tapas-base-finetuned-tabfact/resolve/main/vocab.txt",
-        # medium models
-        "google/tapas-medium-finetuned-sqa": "https://huggingface.co/google/tapas-medium-finetuned-sqa/resolve/main/vocab.txt",
-        "google/tapas-medium-finetuned-wtq": "https://huggingface.co/google/tapas-medium-finetuned-wtq/resolve/main/vocab.txt",
-        "google/tapas-medium-finetuned-wikisql-supervised": "https://huggingface.co/google/tapas-medium-finetuned-wikisql-supervised/resolve/main/vocab.txt",
-        "google/tapas-medium-finetuned-tabfact": "https://huggingface.co/google/tapas-medium-finetuned-tabfact/resolve/main/vocab.txt",
-        # small models
-        "google/tapas-small-finetuned-sqa": "https://huggingface.co/google/tapas-small-finetuned-sqa/resolve/main/vocab.txt",
-        "google/tapas-small-finetuned-wtq": "https://huggingface.co/google/tapas-small-finetuned-wtq/resolve/main/vocab.txt",
-        "google/tapas-small-finetuned-wikisql-supervised": "https://huggingface.co/google/tapas-small-finetuned-wikisql-supervised/resolve/main/vocab.txt",
-        "google/tapas-small-finetuned-tabfact": "https://huggingface.co/google/tapas-small-finetuned-tabfact/resolve/main/vocab.txt",
-        # tiny models
-        "google/tapas-tiny-finetuned-sqa": "https://huggingface.co/google/tapas-tiny-finetuned-sqa/resolve/main/vocab.txt",
-        "google/tapas-tiny-finetuned-wtq": "https://huggingface.co/google/tapas-tiny-finetuned-wtq/resolve/main/vocab.txt",
-        "google/tapas-tiny-finetuned-wikisql-supervised": "https://huggingface.co/google/tapas-tiny-finetuned-wikisql-supervised/resolve/main/vocab.txt",
-        "google/tapas-tiny-finetuned-tabfact": "https://huggingface.co/google/tapas-tiny-finetuned-tabfact/resolve/main/vocab.txt",
-        # mini models
-        "google/tapas-mini-finetuned-sqa": "https://huggingface.co/google/tapas-mini-finetuned-sqa/resolve/main/vocab.txt",
-        "google/tapas-mini-finetuned-wtq": "https://huggingface.co/google/tapas-mini-finetuned-wtq/resolve/main/vocab.txt",
-        "google/tapas-mini-finetuned-wikisql-supervised": "https://huggingface.co/google/tapas-mini-finetuned-wikisql-supervised/resolve/main/vocab.txt",
-        "google/tapas-mini-finetuned-tabfact": "https://huggingface.co/google/tapas-mini-finetuned-tabfact/resolve/main/vocab.txt",
     }
 }
 
-PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {name: 512 for name in PRETRAINED_VOCAB_FILES_MAP.keys()}
-PRETRAINED_INIT_CONFIGURATION = {name: {"do_lower_case": True} for name in PRETRAINED_VOCAB_FILES_MAP.keys()}
+PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
+    # large models
+    "google/tapas-large-finetuned-sqa": 512,
+    "google/tapas-large-finetuned-wtq": 512,
+    "google/tapas-large-finetuned-wikisql-supervised": 512,
+    "google/tapas-large-finetuned-tabfact": 512,
+    # base models
+    "google/tapas-base-finetuned-sqa": 512,
+    "google/tapas-base-finetuned-wtq": 512,
+    "google/tapas-base-finetuned-wikisql-supervised": 512,
+    "google/tapas-base-finetuned-tabfact": 512,
+    # medium models
+    "google/tapas-medium-finetuned-sqa": 512,
+    "google/tapas-medium-finetuned-wtq": 512,
+    "google/tapas-medium-finetuned-wikisql-supervised": 512,
+    "google/tapas-medium-finetuned-tabfact": 512,
+    # small models
+    "google/tapas-base-finetuned-sqa": 512,
+    "google/tapas-base-finetuned-wtq": 512,
+    "google/tapas-base-finetuned-wikisql-supervised": 512,
+    "google/tapas-base-finetuned-tabfact": 512,
+    # tiny models
+    "google/tapas-tiny-finetuned-sqa": 512,
+    "google/tapas-tiny-finetuned-wtq": 512,
+    "google/tapas-tiny-finetuned-wikisql-supervised": 512,
+    "google/tapas-tiny-finetuned-tabfact": 512,
+    # mini models
+    "google/tapas-mini-finetuned-sqa": 512,
+    "google/tapas-mini-finetuned-wtq": 512,
+    "google/tapas-mini-finetuned-wikisql-supervised": 512,
+    "google/tapas-mini-finetuned-tabfact": 512,
+}
+
+PRETRAINED_INIT_CONFIGURATION = {
+    "google/tapas-base-finetuned-sqa": {"do_lower_case": True},
+    "google/tapas-base-finetuned-wtq": {"do_lower_case": True},
+    "google/tapas-base-finetuned-wikisql-supervised": {"do_lower_case": True},
+    "google/tapas-base-finetuned-tabfact": {"do_lower_case": True},
+}
 
 
 class TapasTruncationStrategy(ExplicitEnum):
@@ -148,7 +164,7 @@ def whitespace_tokenize(text):
 TAPAS_ENCODE_PLUS_ADDITIONAL_KWARGS_DOCSTRING = r"""
             add_special_tokens (:obj:`bool`, `optional`, defaults to :obj:`True`):
                 Whether or not to encode the sequences with the special tokens relative to their model.
-            padding (:obj:`bool`, :obj:`str` or :class:`~transformers.file_utils.PaddingStrategy`, `optional`, defaults to :obj:`False`):
+            padding (:obj:`bool`, :obj:`str` or :class:`~transformers.tokenization_utils_base.PaddingStrategy`, `optional`, defaults to :obj:`False`):
                 Activates and controls padding. Accepts the following values:
 
                 * :obj:`True` or :obj:`'longest'`: Pad to the longest sequence in the batch (or no padding if only a
@@ -172,13 +188,12 @@ TAPAS_ENCODE_PLUS_ADDITIONAL_KWARGS_DOCSTRING = r"""
                 length is required by one of the truncation/padding parameters. If the model has no specific maximum
                 input length (like XLNet) truncation/padding to a maximum length will be deactivated.
             is_split_into_words (:obj:`bool`, `optional`, defaults to :obj:`False`):
-                Whether or not the input is already pre-tokenized (e.g., split into words). If set to :obj:`True`, the
-                tokenizer assumes the input is already split into words (for instance, by splitting it on whitespace)
-                which it will tokenize. This is useful for NER or token classification.
+                Whether or not the input is already pre-tokenized (e.g., split into words), in which case the tokenizer
+                will skip the pre-tokenization step. This is useful for NER or token classification.
             pad_to_multiple_of (:obj:`int`, `optional`):
                 If set will pad the sequence to a multiple of the provided value. This is especially useful to enable
                 the use of Tensor Cores on NVIDIA hardware with compute capability >= 7.5 (Volta).
-            return_tensors (:obj:`str` or :class:`~transformers.file_utils.TensorType`, `optional`):
+            return_tensors (:obj:`str` or :class:`~transformers.tokenization_utils_base.TensorType`, `optional`):
                 If set, will return tensors instead of list of python integers. Acceptable values are:
 
                 * :obj:`'tf'`: Return TensorFlow :obj:`tf.constant` objects.
@@ -253,7 +268,7 @@ class TapasTokenizer(PreTrainedTokenizer):
             value for :obj:`lowercase` (as in the original BERT).
         cell_trim_length (:obj:`int`, `optional`, defaults to -1):
             If > 0: Trim cells so that the length is <= this value. Also disables further cell trimming, should thus be
-            used with :obj:`truncation` set to :obj:`True`.
+            used with 'drop_rows_to_fit' below.
         max_column_id (:obj:`int`, `optional`):
             Max column id to extract.
         max_row_id (:obj:`int`, `optional`):
@@ -262,6 +277,8 @@ class TapasTokenizer(PreTrainedTokenizer):
             Whether to add empty strings instead of column names.
         update_answer_coordinates (:obj:`bool`, `optional`, defaults to :obj:`False`):
             Whether to recompute the answer coordinates from the answer text.
+        drop_rows_to_fit (:obj:`bool`, `optional`, defaults to :obj:`False`):
+            Whether to drop the last rows if a table doesn't fit within max sequence length.
 
     """
 
@@ -288,6 +305,7 @@ class TapasTokenizer(PreTrainedTokenizer):
         max_row_id: int = None,
         strip_column_names: bool = False,
         update_answer_coordinates: bool = False,
+        drop_rows_to_fit: bool = False,
         model_max_length: int = 512,
         additional_special_tokens: Optional[List[str]] = None,
         **kwargs
@@ -318,6 +336,7 @@ class TapasTokenizer(PreTrainedTokenizer):
             max_row_id=max_row_id,
             strip_column_names=strip_column_names,
             update_answer_coordinates=update_answer_coordinates,
+            drop_rows_to_fit=drop_rows_to_fit,
             model_max_length=model_max_length,
             additional_special_tokens=additional_special_tokens,
             **kwargs,
@@ -325,8 +344,8 @@ class TapasTokenizer(PreTrainedTokenizer):
 
         if not os.path.isfile(vocab_file):
             raise ValueError(
-                f"Can't find a vocabulary file at path '{vocab_file}'. To load the vocabulary from a Google pretrained "
-                "model use `tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)`"
+                "Can't find a vocabulary file at path '{}'. To load the vocabulary from a Google pretrained "
+                "model use `tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)`".format(vocab_file)
             )
         self.vocab = load_vocab(vocab_file)
         self.ids_to_tokens = collections.OrderedDict([(ids, tok) for tok, ids in self.vocab.items()])
@@ -346,6 +365,7 @@ class TapasTokenizer(PreTrainedTokenizer):
         self.max_row_id = max_row_id if max_row_id is not None else self.model_max_length
         self.strip_column_names = strip_column_names
         self.update_answer_coordinates = update_answer_coordinates
+        self.drop_rows_to_fit = drop_rows_to_fit
 
     @property
     def do_lower_case(self):
@@ -375,7 +395,7 @@ class TapasTokenizer(PreTrainedTokenizer):
         return split_tokens
 
     def _convert_token_to_id(self, token):
-        """Converts a token (str) in an id using the vocab."""
+        """ Converts a token (str) in an id using the vocab. """
         return self.vocab.get(token, self.vocab.get(self.unk_token))
 
     def _convert_id_to_token(self, index):
@@ -383,7 +403,7 @@ class TapasTokenizer(PreTrainedTokenizer):
         return self.ids_to_tokens.get(index, self.unk_token)
 
     def convert_tokens_to_string(self, tokens):
-        """Converts a sequence of tokens (string) in a single string."""
+        """ Converts a sequence of tokens (string) in a single string. """
         out_string = " ".join(tokens).replace(" ##", "").strip()
         return out_string
 
@@ -511,9 +531,12 @@ class TapasTokenizer(PreTrainedTokenizer):
         """
 
         if already_has_special_tokens:
-            return super().get_special_tokens_mask(
-                token_ids_0=token_ids_0, token_ids_1=token_ids_1, already_has_special_tokens=True
-            )
+            if token_ids_1 is not None:
+                raise ValueError(
+                    "You should not supply a second sequence if the provided sequence of "
+                    "ids is already formatted with special tokens for the model."
+                )
+            return list(map(lambda x: 1 if x in [self.sep_token_id, self.cls_token_id] else 0, token_ids_0))
 
         if token_ids_1 is not None:
             return [1] + ([0] * len(token_ids_0)) + [1] + ([0] * len(token_ids_1))
@@ -1112,7 +1135,7 @@ class TapasTokenizer(PreTrainedTokenizer):
             prev_answer_coordinates = kwargs["prev_answer_coordinates"]
             prev_answer_text = kwargs["prev_answer_text"]
 
-        num_rows = self._get_num_rows(raw_table, truncation != TapasTruncationStrategy.DO_NOT_TRUNCATE)
+        num_rows = self._get_num_rows(raw_table, self.drop_rows_to_fit)
         num_columns = self._get_num_columns(raw_table)
         _, _, num_tokens = self._get_table_boundaries(tokenized_table)
 
@@ -1206,9 +1229,9 @@ class TapasTokenizer(PreTrainedTokenizer):
         if max_length is None and len(encoded_inputs["input_ids"]) > self.model_max_length and verbose:
             if not self.deprecation_warnings.get("sequence-length-is-longer-than-the-specified-maximum", False):
                 logger.warning(
-                    f"Token indices sequence length is longer than the specified maximum sequence length "
-                    f"for this model ({len(encoded_inputs['input_ids'])} > {self.model_max_length}). Running this "
-                    "sequence through the model will result in indexing errors."
+                    "Token indices sequence length is longer than the specified maximum sequence length "
+                    "for this model ({} > {}). Running this sequence through the model will result in "
+                    "indexing errors".format(len(encoded_inputs["input_ids"]), self.model_max_length)
                 )
             self.deprecation_warnings["sequence-length-is-longer-than-the-specified-maximum"] = True
 
@@ -1668,7 +1691,7 @@ class TapasTokenizer(PreTrainedTokenizer):
 
     def _find_tokens(self, text, segment):
         """Return start index of segment in text or None."""
-        logging.info(f"text: {text} {segment}")
+        logging.info("text: %s %s", text, segment)
         for index in range(1 + len(text) - len(segment)):
             for seg_index, seg_token in enumerate(segment):
                 if text[index + seg_index].piece != seg_token.piece:
@@ -1683,7 +1706,7 @@ class TapasTokenizer(PreTrainedTokenizer):
         answer_text,
     ):
         """Returns all occurrences of answer_text in the table."""
-        logging.info(f"answer text: {answer_text}")
+        logging.info("answer text: %s", answer_text)
         for row_index, row in enumerate(tokenized_table.rows):
             if row_index == 0:
                 # We don't search for answers in the header.
@@ -2345,7 +2368,7 @@ _INF = float("INF")
 def _get_numeric_value_from_date(date, mask):
     """Converts date (datetime Python object) to a NumericValue object with a Date object value."""
     if date.year < _MIN_YEAR or date.year > _MAX_YEAR:
-        raise ValueError(f"Invalid year: {date.year}")
+        raise ValueError("Invalid year: %d" % date.year)
 
     new_date = Date()
     if mask.year:
@@ -2358,7 +2381,7 @@ def _get_numeric_value_from_date(date, mask):
 
 
 def _get_span_length_key(span):
-    """Sorts span by decreasing length first and increasing first index second."""
+    """Sorts span by decreasing length first and incresing first index second."""
     return span[1] - span[0], -span[0]
 
 
@@ -2521,7 +2544,7 @@ def _get_value_type(numeric_value):
         return NUMBER_TYPE
     elif numeric_value.date is not None:
         return DATE_TYPE
-    raise ValueError(f"Unknown type: {numeric_value}")
+    raise ValueError("Unknown type: %s" % numeric_value)
 
 
 def _get_value_as_primitive_value(numeric_value):
@@ -2539,7 +2562,7 @@ def _get_value_as_primitive_value(numeric_value):
         if date.day is not None:
             value_tuple[2] = float(date.day)
         return tuple(value_tuple)
-    raise ValueError(f"Unknown type: {numeric_value}")
+    raise ValueError("Unknown type: %s" % numeric_value)
 
 
 def _get_all_types(numeric_values):
@@ -2565,7 +2588,7 @@ def get_numeric_sort_key_fn(numeric_values):
     """
     value_types = _get_all_types(numeric_values)
     if len(value_types) != 1:
-        raise ValueError(f"No common value type in {numeric_values}")
+        raise ValueError("No common value type in %s" % numeric_values)
 
     value_type = next(iter(value_types))
     if value_type == NUMBER_TYPE:
@@ -2584,7 +2607,7 @@ def get_numeric_sort_key_fn(numeric_values):
                 valid_indexes.discard(tuple_index)
 
     if not valid_indexes:
-        raise ValueError(f"No common value in {numeric_values}")
+        raise ValueError("No common value in %s" % numeric_values)
 
     def _sort_key_fn(numeric_value):
         value = _get_value_as_primitive_value(numeric_value)
@@ -2616,7 +2639,8 @@ def _consolidate_numeric_values(row_index_to_values, min_consolidation_fraction,
         return {}
     max_count = max(type_counts.values())
     if max_count < len(row_index_to_values) * min_consolidation_fraction:
-        # logging.log_every_n(logging.INFO, f'Can\'t consolidate types: {debug_info} {row_index_to_values} {max_count}', 100)
+        # logging.log_every_n(logging.INFO, 'Can\'t consolidate types: %s %s %d', 100,
+        #                     debug_info, row_index_to_values, max_count)
         return {}
 
     valid_types = set()
@@ -2705,13 +2729,15 @@ def filter_invalid_unicode_from_table(table):
             cell, is_invalid = filter_invalid_unicode(cell)
             if is_invalid:
                 logging.warning(
-                    f"Scrub an invalid table body @ table_id: {table.table_id}, row_index: {row_index}, "
-                    f"col_index: {col_index}",
+                    "Scrub an invalid table body @ table_id: %s, row_index: %d, " "col_index: %d",
+                    table.table_id,
+                    row_index,
+                    col_index,
                 )
     for col_index, column in enumerate(table.columns):
         column, is_invalid = filter_invalid_unicode(column)
         if is_invalid:
-            logging.warning(f"Scrub an invalid table header @ table_id: {table.table_id}, col_index: {col_index}")
+            logging.warning("Scrub an invalid table header @ table_id: %s, col_index: %d", table.table_id, col_index)
 
 
 def add_numeric_table_values(table, min_consolidation_fraction=0.7, debug_info=None):

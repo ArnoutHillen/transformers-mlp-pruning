@@ -17,7 +17,6 @@
 import os
 import unittest
 
-from transformers import MPNetTokenizerFast
 from transformers.models.mpnet.tokenization_mpnet import VOCAB_FILES_NAMES, MPNetTokenizer
 from transformers.testing_utils import require_tokenizers, slow
 
@@ -28,9 +27,7 @@ from .test_tokenization_common import TokenizerTesterMixin
 class MPNetTokenizerTest(TokenizerTesterMixin, unittest.TestCase):
 
     tokenizer_class = MPNetTokenizer
-    rust_tokenizer_class = MPNetTokenizerFast
-    test_rust_tokenizer = True
-    space_between_special_tokens = True
+    test_rust_tokenizer = False
 
     def setUp(self):
         super().setUp()

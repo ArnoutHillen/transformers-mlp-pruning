@@ -23,11 +23,9 @@ There are two categories of pipeline abstractions to be aware about:
 - The :func:`~transformers.pipeline` which is the most powerful object encapsulating all other pipelines.
 - The other task-specific pipelines:
 
-    - :class:`~transformers.AutomaticSpeechRecognitionPipeline`
     - :class:`~transformers.ConversationalPipeline`
     - :class:`~transformers.FeatureExtractionPipeline`
     - :class:`~transformers.FillMaskPipeline`
-    - :class:`~transformers.ImageClassificationPipeline`
     - :class:`~transformers.QuestionAnsweringPipeline`
     - :class:`~transformers.SummarizationPipeline`
     - :class:`~transformers.TextClassificationPipeline`
@@ -50,13 +48,6 @@ pipeline but requires an additional argument which is the `task`.
 The task specific pipelines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-AutomaticSpeechRecognitionPipeline
-=======================================================================================================================
-
-.. autoclass:: transformers.AutomaticSpeechRecognitionPipeline
-    :special-members: __call__
-    :members:
-
 ConversationalPipeline
 =======================================================================================================================
 
@@ -77,13 +68,6 @@ FillMaskPipeline
 =======================================================================================================================
 
 .. autoclass:: transformers.FillMaskPipeline
-    :special-members: __call__
-    :members:
-
-ImageClassificationPipeline
-=======================================================================================================================
-
-.. autoclass:: transformers.ImageClassificationPipeline
     :special-members: __call__
     :members:
 

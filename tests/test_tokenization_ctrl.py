@@ -26,7 +26,6 @@ class CTRLTokenizationTest(TokenizerTesterMixin, unittest.TestCase):
 
     tokenizer_class = CTRLTokenizer
     test_rust_tokenizer = False
-    test_seq2seq = False
 
     def setUp(self):
         super().setUp()

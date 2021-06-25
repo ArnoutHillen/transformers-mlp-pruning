@@ -13,8 +13,8 @@
 Model outputs
 -----------------------------------------------------------------------------------------------------------------------
 
-All models have outputs that are instances of subclasses of :class:`~transformers.file_utils.ModelOutput`. Those are
-data structures containing all the information returned by the model, but that can also be used as tuples or
+PyTorch models have outputs that are instances of subclasses of :class:`~transformers.file_utils.ModelOutput`. Those
+are data structures containing all the information returned by the model, but that can also be used as tuples or
 dictionaries.
 
 Let's see of this looks on an example:
@@ -60,7 +60,7 @@ ModelOutput
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.file_utils.ModelOutput
-    :members: to_tuple
+    :members:
 
 
 BaseModelOutput
@@ -123,6 +123,13 @@ CausalLMOutputWithCrossAttentions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.modeling_outputs.CausalLMOutputWithCrossAttentions
+    :members:
+
+
+CausalLMOutputWithPastAndCrossAttentions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: transformers.modeling_outputs.CausalLMOutputWithPastAndCrossAttentions
     :members:
 
 

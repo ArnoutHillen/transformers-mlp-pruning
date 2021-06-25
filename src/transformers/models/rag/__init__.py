@@ -16,64 +16,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TYPE_CHECKING
+from ...file_utils import is_torch_available
+from .configuration_rag import RagConfig
+from .retrieval_rag import RagRetriever
+from .tokenization_rag import RagTokenizer
 
-from ...file_utils import _BaseLazyModule, is_tf_available, is_torch_available
-
-
-_import_structure = {
-    "configuration_rag": ["RagConfig"],
-    "retrieval_rag": ["RagRetriever"],
-    "tokenization_rag": ["RagTokenizer"],
-}
 
 if is_torch_available():
-    _import_structure["modeling_rag"] = [
-        "RagModel",
-        "RagPreTrainedModel",
-        "RagSequenceForGeneration",
-        "RagTokenForGeneration",
-    ]
-
-if is_tf_available():
-    _import_structure["modeling_tf_rag"] = [
-        "TFRagModel",
-        "TFRagPreTrainedModel",
-        "TFRagSequenceForGeneration",
-        "TFRagTokenForGeneration",
-    ]
-
-
-if TYPE_CHECKING:
-    from .configuration_rag import RagConfig
-    from .retrieval_rag import RagRetriever
-    from .tokenization_rag import RagTokenizer
-
-    if is_torch_available():
-        from .modeling_rag import RagModel, RagPreTrainedModel, RagSequenceForGeneration, RagTokenForGeneration
-
-    if is_tf_available():
-        from .modeling_tf_rag import (
-            TFRagModel,
-            TFRagPreTrainedModel,
-            TFRagSequenceForGeneration,
-            TFRagTokenForGeneration,
-        )
-
-else:
-    import importlib
-    import os
-    import sys
-
-    class _LazyModule(_BaseLazyModule):
-        """
-        Module class that surfaces all objects but only performs associated imports when the objects are requested.
-        """
-
-        __file__ = globals()["__file__"]
-        __path__ = [os.path.dirname(__file__)]
-
-        def _get_module(self, module_name: str):
-            return importlib.import_module("." + module_name, self.__name__)
-
-    sys.modules[__name__] = _LazyModule(__name__, _import_structure)
+    from .modeling_rag import RagModel, RagSequenceForGeneration, RagTokenForGeneration

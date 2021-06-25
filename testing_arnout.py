@@ -11,9 +11,11 @@ def process(t):
 # BERT
 if __name__ == "__main__":
     excluded_neurons = {0:(0,), 1:(0,1), 2:(0,1,2)}
-    model = BertModel.from_pretrained("bert-base-cased", output_attentions=True, output_values=True, output_dense=True, output_mlp_activations=True, output_q_activations=True, output_k_activations=True, output_v_activations=True, excluded_neurons=excluded_neurons)
+    model = BertModel.from_pretrained("bert-base-cased")
     tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
     inputs = tokenizer("Hello", return_tensors="pt")
+    print("### prune ###")
+    model.prune_all_mlp_neurons_except({0:(0,1),1:(0,2)})
     print("### inputs ###")
     print(inputs.items())
     outputs = model(**inputs)

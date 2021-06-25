@@ -15,9 +15,11 @@
 from argparse import ArgumentParser, Namespace
 from typing import Any, List, Optional
 
-from ..pipelines import SUPPORTED_TASKS, TASK_ALIASES, Pipeline, pipeline
+from transformers import Pipeline
+from transformers.commands import BaseTransformersCLICommand
+from transformers.pipelines import SUPPORTED_TASKS, pipeline
+
 from ..utils import logging
-from . import BaseTransformersCLICommand
 
 
 try:
@@ -102,10 +104,7 @@ class ServeCommand(BaseTransformersCLICommand):
             "serve", help="CLI tool to run inference requests through REST and GraphQL endpoints."
         )
         serve_parser.add_argument(
-            "--task",
-            type=str,
-            choices=list(SUPPORTED_TASKS.keys()) + list(TASK_ALIASES.keys()),
-            help="The task to run the pipeline on",
+            "--task", type=str, choices=SUPPORTED_TASKS.keys(), help="The task to run the pipeline on"
         )
         serve_parser.add_argument("--host", type=str, default="localhost", help="Interface the server will listen on.")
         serve_parser.add_argument("--port", type=int, default=8888, help="Port the serving will listen to.")
@@ -136,7 +135,7 @@ class ServeCommand(BaseTransformersCLICommand):
                 "Or install FastAPI and unicorn separately."
             )
         else:
-            logger.info(f"Serving model over {host}:{port}")
+            logger.info("Serving model over {}:{}".format(host, port))
             self._app = FastAPI(
                 routes=[
                     APIRoute(

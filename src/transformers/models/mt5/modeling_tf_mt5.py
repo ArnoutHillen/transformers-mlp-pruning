@@ -31,17 +31,15 @@ class TFMT5Model(TFT5Model):
     documentation alongside usage examples.
 
     Examples::
-
         >>> from transformers import TFMT5Model, T5Tokenizer
         >>> model = TFMT5Model.from_pretrained("google/mt5-small")
         >>> tokenizer = T5Tokenizer.from_pretrained("google/mt5-small")
         >>> article = "UN Offizier sagt, dass weiter verhandelt werden muss in Syrien."
         >>> summary = "Weiter Verhandlung in Syrien."
-        >>> inputs = tokenizer(article, return_tensors="tf")
-        >>> with tokenizer.as_target_tokenizer():
-        ...     labels = tokenizer(summary, return_tensors="tf")
-
-        >>> outputs = model(input_ids=inputs["input_ids"], decoder_input_ids=labels["input_ids"])
+        >>> batch = tokenizer.prepare_seq2seq_batch(src_texts=[article], tgt_texts=[summary], return_tensors="tf")
+        >>> batch["decoder_input_ids"] = batch["labels"]
+        >>> del batch["labels"]
+        >>> outputs = model(batch)
         >>> hidden_states = outputs.last_hidden_state
     """
     model_type = "mt5"
@@ -54,17 +52,13 @@ class TFMT5ForConditionalGeneration(TFT5ForConditionalGeneration):
     appropriate documentation alongside usage examples.
 
     Examples::
-
         >>> from transformers import TFMT5ForConditionalGeneration, T5Tokenizer
         >>> model = TFMT5ForConditionalGeneration.from_pretrained("google/mt5-small")
         >>> tokenizer = T5Tokenizer.from_pretrained("google/mt5-small")
         >>> article = "UN Offizier sagt, dass weiter verhandelt werden muss in Syrien."
         >>> summary = "Weiter Verhandlung in Syrien."
-        >>> inputs = tokenizer(article, return_tensors="tf")
-        >>> with tokenizer.as_target_tokenizer():
-        ...     labels = tokenizer(summary, return_tensors="tf")
-
-        >>> outputs = model(**inputs,labels=labels["input_ids"])
+        >>> batch = tokenizer.prepare_seq2seq_batch(src_texts=[article], tgt_texts=[summary], return_tensors="tf")
+        >>> outputs = model(batch)
         >>> loss = outputs.loss
     """
 

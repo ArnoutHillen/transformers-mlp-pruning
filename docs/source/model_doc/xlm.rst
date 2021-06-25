@@ -42,8 +42,7 @@ Tips:
 - XLM has multilingual checkpoints which leverage a specific :obj:`lang` parameter. Check out the :doc:`multi-lingual
   <../multilingual>` page for more information.
 
-This model was contributed by `thomwolf <https://huggingface.co/thomwolf>`__. The original code can be found `here
-<https://github.com/facebookresearch/XLM/>`__.
+The original code can be found `here <https://github.com/facebookresearch/XLM/>`__.
 
 
 XLMConfig

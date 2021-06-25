@@ -1,4 +1,4 @@
-..
+.. 
     Copyright 2020 The HuggingFace Team. All rights reserved.
 
     Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
@@ -22,7 +22,7 @@ Utilities
 
 .. autoclass:: transformers.EvalPrediction
 
-.. autoclass:: transformers.IntervalStrategy
+.. autoclass:: transformers.EvaluationStrategy
 
 .. autofunction:: transformers.set_seed
 
@@ -46,9 +46,3 @@ Distributed Evaluation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.HfArgumentParser
-
-
-Debug Utilities
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.debug_utils.DebugUnderflowOverflow

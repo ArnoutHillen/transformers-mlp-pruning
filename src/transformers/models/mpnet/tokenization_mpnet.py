@@ -122,7 +122,6 @@ class MPNetTokenizer(PreTrainedTokenizer):
     pretrained_vocab_files_map = PRETRAINED_VOCAB_FILES_MAP
     pretrained_init_configuration = PRETRAINED_INIT_CONFIGURATION
     max_model_input_sizes = PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES
-    model_input_names = ["input_ids", "attention_mask"]
 
     def __init__(
         self,
@@ -169,8 +168,8 @@ class MPNetTokenizer(PreTrainedTokenizer):
 
         if not os.path.isfile(vocab_file):
             raise ValueError(
-                f"Can't find a vocabulary file at path '{vocab_file}'. To load the vocabulary from a Google pretrained "
-                "model use `tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)`"
+                "Can't find a vocabulary file at path '{}'. To load the vocabulary from a Google pretrained "
+                "model use `tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)`".format(vocab_file)
             )
         self.vocab = load_vocab(vocab_file)
         self.ids_to_tokens = collections.OrderedDict([(ids, tok) for tok, ids in self.vocab.items()])
@@ -210,7 +209,7 @@ class MPNetTokenizer(PreTrainedTokenizer):
         return split_tokens
 
     def _convert_token_to_id(self, token):
-        """Converts a token (str) in an id using the vocab."""
+        """ Converts a token (str) in an id using the vocab. """
         return self.vocab.get(token, self.vocab.get(self.unk_token))
 
     def _convert_id_to_token(self, index):
@@ -218,7 +217,7 @@ class MPNetTokenizer(PreTrainedTokenizer):
         return self.ids_to_tokens.get(index, self.unk_token)
 
     def convert_tokens_to_string(self, tokens):
-        """Converts a sequence of tokens (string) in a single string."""
+        """ Converts a sequence of tokens (string) in a single string. """
         out_string = " ".join(tokens).replace(" ##", "").strip()
         return out_string
 
@@ -235,7 +234,7 @@ class MPNetTokenizer(PreTrainedTokenizer):
         Args:
             token_ids_0 (:obj:`List[int]`):
                 List of IDs to which the special tokens will be added
-            token_ids_1 (:obj:`List[int]`, `optional`):
+            token_ids_1 (:obj:`List[int]`, `optional`, defaults to :obj:`None`):
                 Optional second list of IDs for sequence pairs.
 
         Returns:
@@ -266,9 +265,12 @@ class MPNetTokenizer(PreTrainedTokenizer):
             :obj:`List[int]`: A list of integers in the range [0, 1]: 1 for a special token, 0 for a sequence token.
         """
         if already_has_special_tokens:
-            return super().get_special_tokens_mask(
-                token_ids_0=token_ids_0, token_ids_1=token_ids_1, already_has_special_tokens=True
-            )
+            if token_ids_1 is not None:
+                raise ValueError(
+                    "You should not supply a second sequence if the provided sequence of "
+                    "ids is already formated with special tokens for the model."
+                )
+            return list(map(lambda x: 1 if x in [self.sep_token_id, self.cls_token_id] else 0, token_ids_0))
 
         if token_ids_1 is None:
             return [1] + ([0] * len(token_ids_0)) + [1]
@@ -309,8 +311,8 @@ class MPNetTokenizer(PreTrainedTokenizer):
             for token, token_index in sorted(self.vocab.items(), key=lambda kv: kv[1]):
                 if index != token_index:
                     logger.warning(
-                        f"Saving vocabulary to {vocab_file}: vocabulary indices are not consecutive."
-                        " Please check that the vocabulary is not corrupted!"
+                        "Saving vocabulary to {}: vocabulary indices are not consecutive."
+                        " Please check that the vocabulary is not corrupted!".format(vocab_file)
                     )
                     index = token_index
                 writer.write(token + "\n")

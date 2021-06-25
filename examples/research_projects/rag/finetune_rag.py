@@ -13,8 +13,8 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.distributed as dist
-import torch.distributed as torch_distrib
-from pytorch_lightning.plugins.training_type import DDPPlugin
+from pytorch_lightning.accelerators.ddp_accelerator import DDPAccelerator
+from pytorch_lightning.cluster_environments import TorchElasticEnvironment
 from torch.utils.data import DataLoader
 
 from transformers import (
@@ -29,20 +29,14 @@ from transformers import (
     T5ForConditionalGeneration,
 )
 from transformers import logging as transformers_logging
-from transformers.integrations import is_ray_available
 
-
-if is_ray_available():
-    import ray
-    from distributed_ray_retriever import RagRayDistributedRetriever, RayRetriever
 
 from callbacks_rag import (  # noqa: E402 # isort:skipq
     get_checkpoint_callback,
     get_early_stopping_callback,
     Seq2SeqLoggingCallback,
 )
-
-from distributed_pytorch_retriever import RagPyTorchDistributedRetriever  # noqa: E402 # isort:skip
+from distributed_retriever import RagPyTorchDistributedRetriever  # noqa: E402 # isort:skip
 from utils_rag import (  # noqa: E402 # isort:skip
     calculate_exact_match,
     flatten_list,
@@ -73,25 +67,28 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-class CustomDDP(DDPPlugin):
-    def init_ddp_connection(self, global_rank=None, world_size=None) -> None:
-        module = self.model
-        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
-        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        if not torch.distributed.is_initialized():
-            logger.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
+# In PTL >v1.0, `init_ddp_connection` method in the `LightningModule`
+# is no longer used, and is moved into DDPAccelerator instead.
+# We override DDPAccelerator to add our custom logic for initializing the
+# retriever.
+# https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/backends/test_accelerator_connector.py
 
+
+class CustomAccel(DDPAccelerator):
+    def __init__(self, trainer=None, **kwargs):
+        # Trainer is set later.
+        super().__init__(trainer, **kwargs)
+
+    def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True):
+        logger.info("Custom init_ddp_connection.")
+        module = self.trainer.model
+        if self.cluster_environment is None:
+            self.cluster_environment = TorchElasticEnvironment()
+        self.distributed_port = module.hparams.distributed_port
+        os.environ["MASTER_PORT"] = str(self.distributed_port)
+        super().init_ddp_connection(global_rank, world_size, is_slurm_managing_tasks)
         if module.is_rag_model:
-            self.distributed_port = module.hparams.distributed_port
-            if module.distributed_retriever == "pytorch":
-                module.model.rag.retriever.init_retrieval(self.distributed_port)
-            elif module.distributed_retriever == "ray" and global_rank == 0:
-                # For the Ray retriever, only initialize it once when global
-                # rank is 0.
-                module.model.rag.retriever.init_retrieval()
+            module.model.rag.retriever.init_retrieval(self.distributed_port)
 
 
 class GenerativeQAModule(BaseTransformer):
@@ -130,13 +127,7 @@ class GenerativeQAModule(BaseTransformer):
                 config.generator.prefix = hparams.prefix
             config.label_smoothing = hparams.label_smoothing
             hparams, config.generator = set_extra_model_params(extra_model_params, hparams, config.generator)
-            if hparams.distributed_retriever == "pytorch":
-                retriever = RagPyTorchDistributedRetriever.from_pretrained(hparams.model_name_or_path, config=config)
-            elif hparams.distributed_retriever == "ray":
-                # The Ray retriever needs the handles to the retriever actors.
-                retriever = RagRayDistributedRetriever.from_pretrained(
-                    hparams.model_name_or_path, hparams.actor_handles, config=config
-                )
+            retriever = RagPyTorchDistributedRetriever.from_pretrained(hparams.model_name_or_path, config=config)
             model = self.model_class.from_pretrained(hparams.model_name_or_path, config=config, retriever=retriever)
             prefix = config.question_encoder.prefix
         else:
@@ -189,12 +180,7 @@ class GenerativeQAModule(BaseTransformer):
         # For single GPU training, init_ddp_connection is not called.
         # So we need to initialize the retrievers here.
         if hparams.gpus <= 1:
-            if hparams.distributed_retriever == "ray":
-                self.model.retriever.init_retrieval()
-            elif hparams.distributed_retriever == "pytorch":
-                self.model.retriever.init_retrieval(self.distributed_port)
-
-        self.distributed_retriever = hparams.distributed_retriever
+            self.model.retriever.init_retrieval(self.distributed_port)
 
     def forward(self, input_ids, **kwargs):
         return self.model(input_ids, **kwargs)
@@ -222,7 +208,7 @@ class GenerativeQAModule(BaseTransformer):
                 decoder_start_token_id = generator.config.decoder_start_token_id
                 decoder_input_ids = (
                     torch.cat(
-                        [torch.tensor([[decoder_start_token_id]] * target_ids.shape[0]).to(target_ids), target_ids],
+                        [torch.Tensor([[decoder_start_token_id]] * target_ids.shape[0]).to(target_ids), target_ids],
                         dim=1,
                     )
                     if target_ids.shape[0] < self.target_lens["train"]
@@ -457,20 +443,6 @@ class GenerativeQAModule(BaseTransformer):
             help="Path to the faiss index for custom index. More info about custom indexes in the RagRetriever documentation as well as in `examples/rag/use_own_knowledge_dataset.py`",
         )
         parser.add_argument(
-            "--distributed_retriever",
-            choices=["ray", "pytorch"],
-            type=str,
-            default="pytorch",
-            help="What implementation to use for distributed retriever? If "
-            "pytorch is selected, the index is loaded on training "
-            "worker 0, and torch.distributed is used to handle "
-            "communication between training worker 0, and the other "
-            "training workers. If ray is selected, the Ray library is "
-            "used to create load the index on separate processes, "
-            "and Ray handles the communication between the training "
-            "workers and the retrieval actors.",
-        )
-        parser.add_argument(
             "--use_dummy_dataset",
             type=bool,
             default=False,
@@ -478,30 +450,9 @@ class GenerativeQAModule(BaseTransformer):
         )
         return parser
 
-    @staticmethod
-    def add_ray_specific_args(parser):
-        # Ray cluster address.
-        parser.add_argument(
-            "--ray-address",
-            default="auto",
-            type=str,
-            help="The address of the Ray cluster to connect to. If not "
-            "specified, Ray will attempt to automatically detect the "
-            "cluster. Has no effect if pytorch is used as the distributed "
-            "retriever.",
-        )
-        parser.add_argument(
-            "--num_retrieval_workers",
-            type=int,
-            default=1,
-            help="The number of retrieval actors to use when Ray is selected"
-            "for the distributed retriever. Has no effect when "
-            "distributed_retriever is set to pytorch.",
-        )
-        return parser
-
 
 def main(args=None, model=None) -> GenerativeQAModule:
+
     parser = argparse.ArgumentParser()
     parser = pl.Trainer.add_argparse_args(parser)
     parser = GenerativeQAModule.add_model_specific_args(parser, os.getcwd())
@@ -510,46 +461,6 @@ def main(args=None, model=None) -> GenerativeQAModule:
     args = args or parser.parse_args()
 
     Path(args.output_dir).mkdir(exist_ok=True)
-
-    named_actors = []
-    if args.distributed_retriever == "ray" and args.gpus > 1:
-        if not is_ray_available():
-            raise RuntimeError("Please install Ray to use the Ray " "distributed retriever.")
-        # Connect to an existing Ray cluster.
-        try:
-            ray.init(address=args.ray_address)
-        except (ConnectionError, ValueError):
-            logger.warning(
-                "Connection to Ray cluster failed. Make sure a Ray"
-                "cluster is running by either using Ray's cluster "
-                "launcher (`ray up`) or by manually starting Ray on "
-                "each node via `ray start --head` for the head node "
-                "and `ray start --address='<ip address>:6379'` for "
-                "additional nodes. See "
-                "https://docs.ray.io/en/master/cluster/index.html "
-                "for more info."
-            )
-            raise
-
-        # Create Ray actors only for rank 0.
-        if ("LOCAL_RANK" not in os.environ or os.environ["LOCAL_RANK"] == 0) and (
-            "NODE_RANK" not in os.environ or os.environ["NODE_RANK"] == 0
-        ):
-            remote_cls = ray.remote(RayRetriever)
-            named_actors = [
-                remote_cls.options(name="retrieval_worker_{}".format(i)).remote()
-                for i in range(args.num_retrieval_workers)
-            ]
-        else:
-            logger.info(
-                "Getting named actors for NODE_RANK {}, LOCAL_RANK {}".format(
-                    os.environ["NODE_RANK"], os.environ["LOCAL_RANK"]
-                )
-            )
-            named_actors = [ray.get_actor("retrieval_worker_{}".format(i)) for i in range(args.num_retrieval_workers)]
-    args.actor_handles = named_actors
-    assert args.actor_handles == named_actors
-
     if model is None:
         model: GenerativeQAModule = GenerativeQAModule(args)
 
@@ -560,17 +471,17 @@ def main(args=None, model=None) -> GenerativeQAModule:
         or str(args.output_dir).startswith("/tmp")
         or str(args.output_dir).startswith("/var")
     ):
-        training_logger = True  # don't pollute wandb logs unnecessarily
+        logger = True  # don't pollute wandb logs unnecessarily
     elif args.logger_name == "wandb":
         from pytorch_lightning.loggers import WandbLogger
 
         project = os.environ.get("WANDB_PROJECT", dataset)
-        training_logger = WandbLogger(name=model.output_dir.name, project=project)
+        logger = WandbLogger(name=model.output_dir.name, project=project)
 
     elif args.logger_name == "wandb_shared":
         from pytorch_lightning.loggers import WandbLogger
 
-        training_logger = WandbLogger(name=model.output_dir.name, project=f"hf_{dataset}")
+        logger = WandbLogger(name=model.output_dir.name, project=f"hf_{dataset}")
 
     es_callback = (
         get_early_stopping_callback(model.val_metric, args.early_stopping_patience)
@@ -584,9 +495,8 @@ def main(args=None, model=None) -> GenerativeQAModule:
         logging_callback=Seq2SeqLoggingCallback(),
         checkpoint_callback=get_checkpoint_callback(args.output_dir, model.val_metric),
         early_stopping_callback=es_callback,
-        logger=training_logger,
-        custom_ddp_plugin=CustomDDP() if args.gpus > 1 else None,
-        profiler=pl.profiler.AdvancedProfiler() if args.profile else None,
+        logger=logger,
+        accelerator=CustomAccel() if args.gpus > 1 else None,
     )
     pickle_save(model.hparams, model.output_dir / "hparams.pkl")
 
@@ -599,19 +509,4 @@ def main(args=None, model=None) -> GenerativeQAModule:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser = pl.Trainer.add_argparse_args(parser)
-    parser = GenerativeQAModule.add_model_specific_args(parser, os.getcwd())
-    parser = GenerativeQAModule.add_retriever_specific_args(parser)
-    parser = GenerativeQAModule.add_ray_specific_args(parser)
-
-    # Pytorch Lightning Profiler
-    parser.add_argument(
-        "--profile",
-        action="store_true",
-        help="If True, use pytorch_lightning.profiler.AdvancedProfiler to profile the Trainer.",
-    )
-
-    args = parser.parse_args()
-
-    main(args)
+    main()

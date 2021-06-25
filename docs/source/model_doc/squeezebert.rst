@@ -47,9 +47,6 @@ Tips:
 - For best results when finetuning on sequence classification tasks, it is recommended to start with the
   `squeezebert/squeezebert-mnli-headless` checkpoint.
 
-This model was contributed by `forresti <https://huggingface.co/forresti>`__.
-
-
 SqueezeBertConfig
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

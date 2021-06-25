@@ -54,48 +54,6 @@ class {{cookiecutter.camelcase_modelname}}Tokenizer(BertTokenizer):
     pretrained_vocab_files_map = PRETRAINED_VOCAB_FILES_MAP
     max_model_input_sizes = PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES
     pretrained_init_configuration = PRETRAINED_INIT_CONFIGURATION
-
-{%- elif cookiecutter.tokenizer_type == "Based on BART" %}
-from ...utils import logging
-from ..bart.tokenization_bart import BartTokenizer
-
-
-logger = logging.get_logger(__name__)
-
-VOCAB_FILES_NAMES = {"vocab_file": "vocab.json", "merges_file": "merges.txt", "tokenizer_file": "tokenizer.json"}
-
-PRETRAINED_VOCAB_FILES_MAP = {
-    "vocab_file": {
-        "{{cookiecutter.checkpoint_identifier}}": "https://huggingface.co/{{cookiecutter.checkpoint_identifier}}/resolve/main/vocab.json",
-    },
-    "merges_file": {
-        "{{cookiecutter.checkpoint_identifier}}": "https://huggingface.co/{{cookiecutter.checkpoint_identifier}}/resolve/main/merges.txt",
-    },
-    "tokenizer_file": {
-        "{{cookiecutter.checkpoint_identifier}}": "https://huggingface.co/{{cookiecutter.checkpoint_identifier}}/resolve/main/tokenizer.json",
-    },
-}
-
-PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
-    "{{cookiecutter.checkpoint_identifier}}": 1024,
-}
-
-
-class {{cookiecutter.camelcase_modelname}}Tokenizer(BartTokenizer):
-    """
-    Construct a {{cookiecutter.modelname}} tokenizer.
-
-    :class:`~transformers.{{cookiecutter.camelcase_modelname}}Tokenizer` is identical to :class:`~transformers.BartTokenizer` and runs end-to-end
-    tokenization: punctuation splitting and wordpiece.
-
-    Refer to superclass :class:`~transformers.BartTokenizer` for usage examples and documentation concerning
-    parameters.
-    """
-
-    vocab_files_names = VOCAB_FILES_NAMES
-    pretrained_vocab_files_map = PRETRAINED_VOCAB_FILES_MAP
-    max_model_input_sizes = PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES
-
 {%- elif cookiecutter.tokenizer_type == "Standalone" %}
 from typing import List, Optional
 
@@ -108,13 +66,9 @@ from ...utils import logging
 
 logger = logging.get_logger(__name__)
 
-VOCAB_FILES_NAMES = {"vocab_file": "vocab.txt"}
+VOCAB_FILES_NAMES = {}
 
-PRETRAINED_VOCAB_FILES_MAP = {
-    "vocab_file": {
-        "{{cookiecutter.checkpoint_identifier}}": "https://huggingface.co/{{cookiecutter.checkpoint_identifier}}/resolve/main/vocab.txt",
-    },
-}
+PRETRAINED_VOCAB_FILES_MAP = {}
 
 PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
     "{{cookiecutter.checkpoint_identifier}}": 1024,
@@ -132,7 +86,7 @@ class {{cookiecutter.camelcase_modelname}}Tokenizer(PreTrainedTokenizer):
     vocab_files_names = VOCAB_FILES_NAMES
     pretrained_vocab_files_map = PRETRAINED_VOCAB_FILES_MAP
     max_model_input_sizes = PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES
-    model_input_names = ["input_ids", "attention_mask"]
+    model_input_names = ["attention_mask"]
 
     def __init__(
             self,
@@ -225,9 +179,12 @@ class {{cookiecutter.camelcase_modelname}}Tokenizer(PreTrainedTokenizer):
             :obj:`List[int]`: A list of integers in the range [0, 1]: 1 for a special token, 0 for a sequence token.
         """
         if already_has_special_tokens:
-            return super().get_special_tokens_mask(
-                token_ids_0=token_ids_0, token_ids_1=token_ids_1, already_has_special_tokens=True
-            )
+            if token_ids_1 is not None:
+                raise ValueError(
+                    "You should not supply a second sequence if the provided sequence of "
+                    "ids is already formatted with special tokens for the model."
+                )
+            return list(map(lambda x: 1 if x in [self.sep_token_id, self.cls_token_id] else 0, token_ids_0))
 
         if token_ids_1 is None:
             return [1] + ([0] * len(token_ids_0)) + [1]
@@ -274,7 +231,7 @@ class {{cookiecutter.camelcase_modelname}}TokenizerFast(PreTrainedTokenizerFast)
     vocab_files_names = VOCAB_FILES_NAMES
     pretrained_vocab_files_map = PRETRAINED_VOCAB_FILES_MAP
     max_model_input_sizes = PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES
-    model_input_names = ["input_ids", "attention_mask"]
+    model_input_names = ["attention_mask"]
 
     def __init__(
             self,
@@ -331,5 +288,6 @@ class {{cookiecutter.camelcase_modelname}}TokenizerFast(PreTrainedTokenizerFast)
         if token_ids_1 is None:
             return len(cls + token_ids_0 + sep) * [0]
         return len(cls + token_ids_0 + sep + sep + token_ids_1 + sep) * [0]
+
 
 {% endif %}

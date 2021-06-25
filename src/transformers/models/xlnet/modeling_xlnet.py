@@ -22,7 +22,8 @@ from typing import List, Optional, Tuple
 
 import torch
 from torch import nn
-from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
+from torch.nn import CrossEntropyLoss, MSELoss
+from torch.nn import functional as F
 
 from ...activations import ACT2FN
 from ...file_utils import (
@@ -46,7 +47,6 @@ from .configuration_xlnet import XLNetConfig
 
 logger = logging.get_logger(__name__)
 
-_CHECKPOINT_FOR_DOC = "xlnet-base-cased"
 _CONFIG_FOR_DOC = "XLNetConfig"
 _TOKENIZER_FOR_DOC = "XLNetTokenizer"
 
@@ -76,10 +76,10 @@ def build_tf_xlnet_to_pytorch_map(model, config, tf_weights=None):
         if (
             hasattr(model, "logits_proj")
             and config.finetuning_task is not None
-            and f"model/regression_{config.finetuning_task}/logit/kernel" in tf_weights
+            and "model/regression_{}/logit/kernel".format(config.finetuning_task) in tf_weights
         ):
-            tf_to_pt_map[f"model/regression_{config.finetuning_task}/logit/kernel"] = model.logits_proj.weight
-            tf_to_pt_map[f"model/regression_{config.finetuning_task}/logit/bias"] = model.logits_proj.bias
+            tf_to_pt_map["model/regression_{}/logit/kernel".format(config.finetuning_task)] = model.logits_proj.weight
+            tf_to_pt_map["model/regression_{}/logit/bias".format(config.finetuning_task)] = model.logits_proj.bias
 
         # Now load the rest of the transformer
         model = model.transformer
@@ -94,7 +94,7 @@ def build_tf_xlnet_to_pytorch_map(model, config, tf_weights=None):
 
     # Transformer blocks
     for i, b in enumerate(model.layer):
-        layer_str = f"model/transformer/layer_{i}/"
+        layer_str = "model/transformer/layer_%d/" % i
         tf_to_pt_map.update(
             {
                 layer_str + "rel_attn/LayerNorm/gamma": b.rel_attn.layer_norm.weight,
@@ -155,7 +155,7 @@ def load_tf_weights_in_xlnet(model, config, tf_path):
     init_vars = tf.train.list_variables(tf_path)
     tf_weights = {}
     for name, shape in init_vars:
-        logger.info(f"Loading TF weight {name} with shape {shape}")
+        logger.info("Loading TF weight {} with shape {}".format(name, shape))
         array = tf.train.load_variable(tf_path, name)
         tf_weights[name] = array
 
@@ -163,9 +163,9 @@ def load_tf_weights_in_xlnet(model, config, tf_path):
     tf_to_pt_map = build_tf_xlnet_to_pytorch_map(model, config, tf_weights)
 
     for name, pointer in tf_to_pt_map.items():
-        logger.info(f"Importing {name}")
+        logger.info("Importing {}".format(name))
         if name not in tf_weights:
-            logger.info(f"{name} not in tf pre-trained weights, skipping")
+            logger.info("{} not in tf pre-trained weights, skipping".format(name))
             continue
         array = tf_weights[name]
         # adam_v and adam_m are variables used in AdamWeightDecayOptimizer to calculated m and v
@@ -187,7 +187,7 @@ def load_tf_weights_in_xlnet(model, config, tf_path):
                 except AssertionError as e:
                     e.args += (p_i.shape, arr_i.shape)
                     raise
-                logger.info(f"Initialize PyTorch weight {name} for layer {i}")
+                logger.info("Initialize PyTorch weight {} for layer {}".format(name, i))
                 p_i.data = torch.from_numpy(arr_i)
         else:
             try:
@@ -197,13 +197,13 @@ def load_tf_weights_in_xlnet(model, config, tf_path):
             except AssertionError as e:
                 e.args += (pointer.shape, array.shape)
                 raise
-            logger.info(f"Initialize PyTorch weight {name}")
+            logger.info("Initialize PyTorch weight {}".format(name))
             pointer.data = torch.from_numpy(array)
         tf_weights.pop(name, None)
         tf_weights.pop(name + "/Adam", None)
         tf_weights.pop(name + "/Adam_1", None)
 
-    logger.info(f"Weights not copied to PyTorch model: {', '.join(tf_weights.keys())}")
+    logger.info("Weights not copied to PyTorch model: {}".format(", ".join(tf_weights.keys())))
     return model
 
 
@@ -213,8 +213,8 @@ class XLNetRelativeAttention(nn.Module):
 
         if config.d_model % config.n_head != 0:
             raise ValueError(
-                f"The hidden size ({config.d_model}) is not a multiple of the number of attention "
-                f"heads ({config.n_head}"
+                "The hidden size (%d) is not a multiple of the number of attention "
+                "heads (%d)" % (config.d_model, config.n_head)
             )
 
         self.n_head = config.n_head
@@ -304,7 +304,7 @@ class XLNetRelativeAttention(nn.Module):
                 attn_score = attn_score - 1e30 * torch.einsum("ijbn->bnij", attn_mask)
 
         # attention probability
-        attn_prob = nn.functional.softmax(attn_score, dim=3)
+        attn_prob = F.softmax(attn_score, dim=3)
         attn_prob = self.dropout(attn_prob)
 
         # Mask heads if we want to
@@ -552,16 +552,12 @@ class XLNetPreTrainedModel(PreTrainedModel):
 
     def _init_weights(self, module):
         """Initialize the weights."""
-        if isinstance(module, nn.Linear):
+        if isinstance(module, (nn.Linear, nn.Embedding)):
             # Slightly different from the TF version which uses truncated_normal for initialization
             # cf https://github.com/pytorch/pytorch/pull/5617
             module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-            if module.bias is not None:
+            if isinstance(module, nn.Linear) and module.bias is not None:
                 module.bias.data.zero_()
-        elif isinstance(module, nn.Embedding):
-            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-            if module.padding_idx is not None:
-                module.weight.data[module.padding_idx].zero_()
         elif isinstance(module, nn.LayerNorm):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
@@ -1040,7 +1036,7 @@ class XLNetModel(XLNetPreTrainedModel):
             # beg, end = klen - 1, -1
             beg, end = klen, -1
         else:
-            raise ValueError(f"Unknown `attn_type` {self.attn_type}.")
+            raise ValueError("Unknown `attn_type` {}.".format(self.attn_type))
 
         if self.bi_data:
             fwd_pos_seq = torch.arange(beg, end, -1.0, dtype=torch.float)
@@ -1070,7 +1066,7 @@ class XLNetModel(XLNetPreTrainedModel):
     @add_start_docstrings_to_model_forward(XLNET_INPUTS_DOCSTRING.format("batch_size, sequence_length"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint=_CHECKPOINT_FOR_DOC,
+        checkpoint="xlnet-base-cased",
         output_type=XLNetModelOutput,
         config_class=_CONFIG_FOR_DOC,
     )
@@ -1144,7 +1140,7 @@ class XLNetModel(XLNetPreTrainedModel):
         elif self.attn_type == "bi":
             attn_mask = None
         else:
-            raise ValueError(f"Unsupported attention type: {self.attn_type}")
+            raise ValueError("Unsupported attention type: {}".format(self.attn_type))
 
         # data mask: input mask & perm mask
         assert input_mask is None or attention_mask is None, "You can only use one of input_mask (uses 1 for padding) "
@@ -1207,7 +1203,7 @@ class XLNetModel(XLNetPreTrainedModel):
 
             # `1` indicates not in the same segment [qlen x klen x bsz]
             seg_mat = (token_type_ids[:, None] != cat_ids[None, :]).long()
-            seg_mat = nn.functional.one_hot(seg_mat, num_classes=2).to(dtype_float)
+            seg_mat = F.one_hot(seg_mat, num_classes=2).to(dtype_float)
         else:
             seg_mat = None
 
@@ -1466,15 +1462,6 @@ class XLNetLMHeadModel(XLNetPreTrainedModel):
             attentions=transformer_outputs.attentions,
         )
 
-    @staticmethod
-    def _reorder_cache(mems: List[torch.Tensor], beam_idx: torch.Tensor) -> List[torch.Tensor]:
-        """
-        This function is used to re-order the :obj:`mems` cache if :meth:`~transformers.PreTrainedModel.beam_search` or
-        :meth:`~transformers.PreTrainedModel.beam_sample` is called. This is required to match :obj:`mems` with the
-        correct beam_idx at every generation step.
-        """
-        return [layer_past.index_select(1, beam_idx.to(layer_past.device)) for layer_past in mems]
-
 
 @add_start_docstrings(
     """
@@ -1487,7 +1474,6 @@ class XLNetForSequenceClassification(XLNetPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
-        self.config = config
 
         self.transformer = XLNetModel(config)
         self.sequence_summary = SequenceSummary(config)
@@ -1498,7 +1484,7 @@ class XLNetForSequenceClassification(XLNetPreTrainedModel):
     @add_start_docstrings_to_model_forward(XLNET_INPUTS_DOCSTRING.format("batch_size, sequence_length"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint=_CHECKPOINT_FOR_DOC,
+        checkpoint="xlnet-base-cased",
         output_type=XLNetForSequenceClassificationOutput,
         config_class=_CONFIG_FOR_DOC,
     )
@@ -1551,26 +1537,13 @@ class XLNetForSequenceClassification(XLNetPreTrainedModel):
 
         loss = None
         if labels is not None:
-            if self.config.problem_type is None:
-                if self.num_labels == 1:
-                    self.config.problem_type = "regression"
-                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
-                    self.config.problem_type = "single_label_classification"
-                else:
-                    self.config.problem_type = "multi_label_classification"
-
-            if self.config.problem_type == "regression":
+            if self.num_labels == 1:
+                #  We are doing regression
                 loss_fct = MSELoss()
-                if self.num_labels == 1:
-                    loss = loss_fct(logits.squeeze(), labels.squeeze())
-                else:
-                    loss = loss_fct(logits, labels)
-            elif self.config.problem_type == "single_label_classification":
+                loss = loss_fct(logits.view(-1), labels.view(-1))
+            else:
                 loss_fct = CrossEntropyLoss()
                 loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            elif self.config.problem_type == "multi_label_classification":
-                loss_fct = BCEWithLogitsLoss()
-                loss = loss_fct(logits, labels)
 
         if not return_dict:
             output = (logits,) + transformer_outputs[1:]
@@ -1605,7 +1578,7 @@ class XLNetForTokenClassification(XLNetPreTrainedModel):
     @add_start_docstrings_to_model_forward(XLNET_INPUTS_DOCSTRING.format("batch_size, sequence_length"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint=_CHECKPOINT_FOR_DOC,
+        checkpoint="xlnet-base-cased",
         output_type=XLNetForTokenClassificationOutput,
         config_class=_CONFIG_FOR_DOC,
     )
@@ -1702,7 +1675,7 @@ class XLNetForMultipleChoice(XLNetPreTrainedModel):
     @add_start_docstrings_to_model_forward(XLNET_INPUTS_DOCSTRING.format("batch_size, num_choices, sequence_length"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint=_CHECKPOINT_FOR_DOC,
+        checkpoint="xlnet-base-cased",
         output_type=XLNetForMultipleChoiceOutput,
         config_class=_CONFIG_FOR_DOC,
     )
@@ -1805,7 +1778,7 @@ class XLNetForQuestionAnsweringSimple(XLNetPreTrainedModel):
     @add_start_docstrings_to_model_forward(XLNET_INPUTS_DOCSTRING.format("batch_size, sequence_length"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint=_CHECKPOINT_FOR_DOC,
+        checkpoint="xlnet-base-cased",
         output_type=XLNetForQuestionAnsweringSimpleOutput,
         config_class=_CONFIG_FOR_DOC,
     )
@@ -1861,8 +1834,8 @@ class XLNetForQuestionAnsweringSimple(XLNetPreTrainedModel):
 
         logits = self.qa_outputs(sequence_output)
         start_logits, end_logits = logits.split(1, dim=-1)
-        start_logits = start_logits.squeeze(-1).contiguous()
-        end_logits = end_logits.squeeze(-1).contiguous()
+        start_logits = start_logits.squeeze(-1)
+        end_logits = end_logits.squeeze(-1)
 
         total_loss = None
         if start_positions is not None and end_positions is not None:
@@ -1873,8 +1846,8 @@ class XLNetForQuestionAnsweringSimple(XLNetPreTrainedModel):
                 end_positions = end_positions.squeeze(-1)
             # sometimes the start/end positions are outside our model inputs, we ignore these terms
             ignored_index = start_logits.size(1)
-            start_positions = start_positions.clamp(0, ignored_index)
-            end_positions = end_positions.clamp(0, ignored_index)
+            start_positions.clamp_(0, ignored_index)
+            end_positions.clamp_(0, ignored_index)
 
             loss_fct = CrossEntropyLoss(ignore_index=ignored_index)
             start_loss = loss_fct(start_logits, start_positions)
@@ -2033,7 +2006,7 @@ class XLNetForQuestionAnswering(XLNetPreTrainedModel):
         else:
             # during inference, compute the end logits based on beam search
             bsz, slen, hsz = hidden_states.size()
-            start_log_probs = nn.functional.softmax(start_logits, dim=-1)  # shape (bsz, slen)
+            start_log_probs = F.softmax(start_logits, dim=-1)  # shape (bsz, slen)
 
             start_top_log_probs, start_top_index = torch.topk(
                 start_log_probs, self.start_n_top, dim=-1
@@ -2047,7 +2020,7 @@ class XLNetForQuestionAnswering(XLNetPreTrainedModel):
             )  # shape (bsz, slen, start_n_top, hsz)
             p_mask = p_mask.unsqueeze(-1) if p_mask is not None else None
             end_logits = self.end_logits(hidden_states_expanded, start_states=start_states, p_mask=p_mask)
-            end_log_probs = nn.functional.softmax(end_logits, dim=1)  # shape (bsz, slen, start_n_top)
+            end_log_probs = F.softmax(end_logits, dim=1)  # shape (bsz, slen, start_n_top)
 
             end_top_log_probs, end_top_index = torch.topk(
                 end_log_probs, self.end_n_top, dim=1

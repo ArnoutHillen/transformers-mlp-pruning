@@ -37,8 +37,7 @@ Tips:
 - This implementation is the same as RoBERTa. Refer to the :doc:`documentation of RoBERTa <roberta>` for usage examples
   as well as the information relative to the inputs and outputs.
 
-This model was contributed by `camembert <https://huggingface.co/camembert>`__. The original code can be found `here
-<https://camembert-model.fr/>`__.
+The original code can be found `here <https://camembert-model.fr/>`__.
 
 CamembertConfig
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

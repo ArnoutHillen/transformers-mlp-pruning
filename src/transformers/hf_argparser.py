@@ -14,9 +14,8 @@
 
 import dataclasses
 import json
-import re
 import sys
-from argparse import ArgumentParser, ArgumentTypeError
+from argparse import ArgumentParser
 from enum import Enum
 from pathlib import Path
 from typing import Any, Iterable, List, NewType, Optional, Tuple, Union
@@ -26,27 +25,13 @@ DataClass = NewType("DataClass", Any)
 DataClassType = NewType("DataClassType", Any)
 
 
-# From https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse
-def string_to_bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ("yes", "true", "t", "y", "1"):
-        return True
-    elif v.lower() in ("no", "false", "f", "n", "0"):
-        return False
-    else:
-        raise ArgumentTypeError(
-            f"Truthy value expected: got {v} but expected one of yes/no, true/false, t/f, y/n, 1/0 (case insensitive)."
-        )
-
-
 class HfArgumentParser(ArgumentParser):
     """
     This subclass of `argparse.ArgumentParser` uses type hints on dataclasses to generate arguments.
 
     The class is designed to play well with the native argparse. In particular, you can add more (non-dataclass backed)
     arguments to the parser after initialization and you'll get the output back after parsing as an additional
-    namespace. Optional: To create sub argument groups use the `_argument_group_name` attribute in the dataclass.
+    namespace.
     """
 
     dataclass_types: Iterable[DataClassType]
@@ -67,13 +52,7 @@ class HfArgumentParser(ArgumentParser):
             self._add_dataclass_arguments(dtype)
 
     def _add_dataclass_arguments(self, dtype: DataClassType):
-        if hasattr(dtype, "_argument_group_name"):
-            parser = self.add_argument_group(dtype._argument_group_name)
-        else:
-            parser = self
         for field in dataclasses.fields(dtype):
-            if not field.init:
-                continue
             field_name = f"--{field.name}"
             kwargs = field.metadata.copy()
             # field.metadata is not used at all by Data Classes,
@@ -87,51 +66,30 @@ class HfArgumentParser(ArgumentParser):
             typestring = str(field.type)
             for prim_type in (int, float, str):
                 for collection in (List,):
-                    if (
-                        typestring == f"typing.Union[{collection[prim_type]}, NoneType]"
-                        or typestring == f"typing.Optional[{collection[prim_type]}]"
-                    ):
+                    if typestring == f"typing.Union[{collection[prim_type]}, NoneType]":
                         field.type = collection[prim_type]
-                if (
-                    typestring == f"typing.Union[{prim_type.__name__}, NoneType]"
-                    or typestring == f"typing.Optional[{prim_type.__name__}]"
-                ):
+                if typestring == f"typing.Union[{prim_type.__name__}, NoneType]":
                     field.type = prim_type
 
             if isinstance(field.type, type) and issubclass(field.type, Enum):
-                kwargs["choices"] = [x.value for x in field.type]
-                kwargs["type"] = type(kwargs["choices"][0])
+                kwargs["choices"] = list(field.type)
+                kwargs["type"] = field.type
                 if field.default is not dataclasses.MISSING:
                     kwargs["default"] = field.default
-                else:
-                    kwargs["required"] = True
-            elif field.type is bool or field.type == Optional[bool]:
-                if field.default is True:
-                    parser.add_argument(f"--no_{field.name}", action="store_false", dest=field.name, **kwargs)
-
-                # Hack because type=bool in argparse does not behave as we want.
-                kwargs["type"] = string_to_bool
+            elif field.type is bool or field.type is Optional[bool]:
                 if field.type is bool or (field.default is not None and field.default is not dataclasses.MISSING):
-                    # Default value is True if we have no default when of type bool.
-                    default = True if field.default is dataclasses.MISSING else field.default
-                    # This is the value that will get picked if we don't include --field_name in any way
-                    kwargs["default"] = default
-                    # This tells argparse we accept 0 or 1 value after --field_name
-                    kwargs["nargs"] = "?"
-                    # This is the value that will get picked if we do --field_name (without value)
-                    kwargs["const"] = True
-            elif (
-                hasattr(field.type, "__origin__") and re.search(r"^typing\.List\[(.*)\]$", str(field.type)) is not None
-            ):
+                    kwargs["action"] = "store_false" if field.default is True else "store_true"
+                if field.default is True:
+                    field_name = f"--no_{field.name}"
+                    kwargs["dest"] = field.name
+            elif hasattr(field.type, "__origin__") and issubclass(field.type.__origin__, List):
                 kwargs["nargs"] = "+"
                 kwargs["type"] = field.type.__args__[0]
                 assert all(
                     x == kwargs["type"] for x in field.type.__args__
-                ), f"{field.name} cannot be a List of mixed types"
+                ), "{} cannot be a List of mixed types".format(field.name)
                 if field.default_factory is not dataclasses.MISSING:
                     kwargs["default"] = field.default_factory()
-                elif field.default is dataclasses.MISSING:
-                    kwargs["required"] = True
             else:
                 kwargs["type"] = field.type
                 if field.default is not dataclasses.MISSING:
@@ -140,7 +98,7 @@ class HfArgumentParser(ArgumentParser):
                     kwargs["default"] = field.default_factory()
                 else:
                     kwargs["required"] = True
-            parser.add_argument(field_name, **kwargs)
+            self.add_argument(field_name, **kwargs)
 
     def parse_args_into_dataclasses(
         self, args=None, return_remaining_strings=False, look_for_args_file=True, args_filename=None
@@ -184,7 +142,7 @@ class HfArgumentParser(ArgumentParser):
         namespace, remaining_args = self.parse_known_args(args=args)
         outputs = []
         for dtype in self.dataclass_types:
-            keys = {f.name for f in dataclasses.fields(dtype) if f.init}
+            keys = {f.name for f in dataclasses.fields(dtype)}
             inputs = {k: v for k, v in vars(namespace).items() if k in keys}
             for k in keys:
                 delattr(namespace, k)
@@ -209,7 +167,7 @@ class HfArgumentParser(ArgumentParser):
         data = json.loads(Path(json_file).read_text())
         outputs = []
         for dtype in self.dataclass_types:
-            keys = {f.name for f in dataclasses.fields(dtype) if f.init}
+            keys = {f.name for f in dataclasses.fields(dtype)}
             inputs = {k: v for k, v in data.items() if k in keys}
             obj = dtype(**inputs)
             outputs.append(obj)
@@ -222,7 +180,7 @@ class HfArgumentParser(ArgumentParser):
         """
         outputs = []
         for dtype in self.dataclass_types:
-            keys = {f.name for f in dataclasses.fields(dtype) if f.init}
+            keys = {f.name for f in dataclasses.fields(dtype)}
             inputs = {k: v for k, v in args.items() if k in keys}
             obj = dtype(**inputs)
             outputs.append(obj)

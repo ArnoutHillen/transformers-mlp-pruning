@@ -30,7 +30,6 @@ from transformers import (
     AutoConfig,
     AutoModelForTokenClassification,
     AutoTokenizer,
-    DataCollatorWithPadding,
     EvalPrediction,
     HfArgumentParser,
     Trainer,
@@ -238,9 +237,6 @@ def main():
             "f1": f1_score(out_label_list, preds_list),
         }
 
-    # Data collator
-    data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8) if training_args.fp16 else None
-
     # Initialize our Trainer
     trainer = Trainer(
         model=model,
@@ -248,7 +244,6 @@ def main():
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         compute_metrics=compute_metrics,
-        data_collator=data_collator,
     )
 
     # Training

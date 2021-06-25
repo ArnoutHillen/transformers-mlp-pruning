@@ -27,7 +27,8 @@ import math
 import re
 import string
 
-from ...models.bert import BasicTokenizer
+from transformers import BasicTokenizer
+
 from ...utils import logging
 
 
@@ -96,7 +97,7 @@ def get_raw_scores(examples, preds):
             gold_answers = [""]
 
         if qas_id not in preds:
-            print(f"Missing prediction for {qas_id}")
+            print("Missing prediction for %s" % qas_id)
             continue
 
         prediction = preds[qas_id]
@@ -140,7 +141,7 @@ def make_eval_dict(exact_scores, f1_scores, qid_list=None):
 
 def merge_eval(main_eval, new_eval, prefix):
     for k in new_eval:
-        main_eval[f"{prefix}_{k}"] = new_eval[k]
+        main_eval["%s_%s" % (prefix, k)] = new_eval[k]
 
 
 def find_best_thresh_v2(preds, scores, na_probs, qid_to_has_ans):
@@ -302,7 +303,7 @@ def get_final_text(pred_text, orig_text, do_lower_case, verbose_logging=False):
     start_position = tok_text.find(pred_text)
     if start_position == -1:
         if verbose_logging:
-            logger.info(f"Unable to find text: '{pred_text}' in '{orig_text}'")
+            logger.info("Unable to find text: '%s' in '%s'" % (pred_text, orig_text))
         return orig_text
     end_position = start_position + len(pred_text) - 1
 
@@ -311,7 +312,7 @@ def get_final_text(pred_text, orig_text, do_lower_case, verbose_logging=False):
 
     if len(orig_ns_text) != len(tok_ns_text):
         if verbose_logging:
-            logger.info(f"Length not equal after stripping spaces: '{orig_ns_text}' vs '{tok_ns_text}'")
+            logger.info("Length not equal after stripping spaces: '%s' vs '%s'", orig_ns_text, tok_ns_text)
         return orig_text
 
     # We then project the characters in `pred_text` back to `orig_text` using
@@ -615,7 +616,8 @@ def compute_predictions_log_probs(
         "NbestPrediction", ["text", "start_log_prob", "end_log_prob"]
     )
 
-    logger.info(f"Writing predictions to: {output_prediction_file}")
+    logger.info("Writing predictions to: %s", output_prediction_file)
+    # logger.info("Writing nbest to: %s" % (output_nbest_file))
 
     example_index_to_features = collections.defaultdict(list)
     for feature in all_features:

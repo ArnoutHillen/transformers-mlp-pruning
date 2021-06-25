@@ -40,7 +40,6 @@ from .configuration_mpnet import MPNetConfig
 
 logger = logging.get_logger(__name__)
 
-_CHECKPOINT_FOR_DOC = "microsoft/mpnet-base"
 _CONFIG_FOR_DOC = "MPNetConfig"
 _TOKENIZER_FOR_DOC = "MPNetTokenizer"
 
@@ -56,20 +55,16 @@ class MPNetPreTrainedModel(PreTrainedModel):
     base_model_prefix = "mpnet"
 
     def _init_weights(self, module):
-        """Initialize the weights"""
-        if isinstance(module, nn.Linear):
+        """ Initialize the weights """
+        if isinstance(module, (nn.Linear, nn.Embedding)):
             # Slightly different from the TF version which uses truncated_normal for initialization
             # cf https://github.com/pytorch/pytorch/pull/5617
             module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-            if module.bias is not None:
-                module.bias.data.zero_()
-        elif isinstance(module, nn.Embedding):
-            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-            if module.padding_idx is not None:
-                module.weight.data[module.padding_idx].zero_()
         elif isinstance(module, nn.LayerNorm):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
+        if isinstance(module, nn.Linear) and module.bias is not None:
+            module.bias.data.zero_()
 
 
 class MPNetEmbeddings(nn.Module):
@@ -134,8 +129,8 @@ class MPNetSelfAttention(nn.Module):
         super().__init__()
         if config.hidden_size % config.num_attention_heads != 0 and not hasattr(config, "embedding_size"):
             raise ValueError(
-                f"The hidden size ({config.hidden_size}) is not a multiple of the number of attention "
-                f"heads ({config.num_attention_heads})"
+                "The hidden size (%d) is not a multiple of the number of attention "
+                "heads (%d)" % (config.hidden_size, config.num_attention_heads)
             )
 
         self.num_attention_heads = config.num_attention_heads
@@ -444,7 +439,7 @@ MPNET_INPUTS_DOCSTRING = r"""
             details.
 
             `What are input IDs? <../glossary.html#input-ids>`__
-        attention_mask (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`):
+        attention_mask (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`, defaults to :obj:`None`):
             Mask to avoid performing attention on padding token indices. Mask values selected in ``[0, 1]``:
 
             - 1 for tokens that are **not masked**,
@@ -512,7 +507,7 @@ class MPNetModel(MPNetPreTrainedModel):
     @add_start_docstrings_to_model_forward(MPNET_INPUTS_DOCSTRING.format("(batch_size, sequence_length)"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint=_CHECKPOINT_FOR_DOC,
+        checkpoint="microsoft/mpnet-base",
         output_type=BaseModelOutputWithPooling,
         config_class=_CONFIG_FOR_DOC,
     )
@@ -594,7 +589,7 @@ class MPNetForMaskedLM(MPNetPreTrainedModel):
     @add_start_docstrings_to_model_forward(MPNET_INPUTS_DOCSTRING.format("batch_size, sequence_length"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint=_CHECKPOINT_FOR_DOC,
+        checkpoint="microsoft/mpnet-base",
         output_type=MaskedLMOutput,
         config_class=_CONFIG_FOR_DOC,
     )
@@ -602,6 +597,7 @@ class MPNetForMaskedLM(MPNetPreTrainedModel):
         self,
         input_ids=None,
         attention_mask=None,
+        token_type_ids=None,
         position_ids=None,
         head_mask=None,
         inputs_embeds=None,
@@ -621,6 +617,7 @@ class MPNetForMaskedLM(MPNetPreTrainedModel):
         outputs = self.mpnet(
             input_ids,
             attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
             position_ids=position_ids,
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
@@ -696,7 +693,7 @@ class MPNetForSequenceClassification(MPNetPreTrainedModel):
     @add_start_docstrings_to_model_forward(MPNET_INPUTS_DOCSTRING.format("batch_size, sequence_length"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint=_CHECKPOINT_FOR_DOC,
+        checkpoint="microsoft/mpnet-base",
         output_type=SequenceClassifierOutput,
         config_class=_CONFIG_FOR_DOC,
     )
@@ -704,6 +701,7 @@ class MPNetForSequenceClassification(MPNetPreTrainedModel):
         self,
         input_ids=None,
         attention_mask=None,
+        token_type_ids=None,
         position_ids=None,
         head_mask=None,
         inputs_embeds=None,
@@ -718,12 +716,12 @@ class MPNetForSequenceClassification(MPNetPreTrainedModel):
             config.num_labels - 1]`. If :obj:`config.num_labels == 1` a regression loss is computed (Mean-Square loss),
             If :obj:`config.num_labels > 1` a classification loss is computed (Cross-Entropy).
         """
-
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         outputs = self.mpnet(
             input_ids,
             attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
             position_ids=position_ids,
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
@@ -778,13 +776,14 @@ class MPNetForMultipleChoice(MPNetPreTrainedModel):
     @add_start_docstrings_to_model_forward(MPNET_INPUTS_DOCSTRING.format("batch_size, num_choices, sequence_length"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint=_CHECKPOINT_FOR_DOC,
+        checkpoint="microsoft/mpnet-base",
         output_type=MultipleChoiceModelOutput,
         config_class=_CONFIG_FOR_DOC,
     )
     def forward(
         self,
         input_ids=None,
+        token_type_ids=None,
         attention_mask=None,
         position_ids=None,
         head_mask=None,
@@ -800,12 +799,12 @@ class MPNetForMultipleChoice(MPNetPreTrainedModel):
             num_choices-1]`` where :obj:`num_choices` is the size of the second dimension of the input tensors. (See
             :obj:`input_ids` above)
         """
-
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
         num_choices = input_ids.shape[1] if input_ids is not None else inputs_embeds.shape[1]
 
         flat_input_ids = input_ids.view(-1, input_ids.size(-1)) if input_ids is not None else None
         flat_position_ids = position_ids.view(-1, position_ids.size(-1)) if position_ids is not None else None
+        flat_token_type_ids = token_type_ids.view(-1, token_type_ids.size(-1)) if token_type_ids is not None else None
         flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1)) if attention_mask is not None else None
         flat_inputs_embeds = (
             inputs_embeds.view(-1, inputs_embeds.size(-2), inputs_embeds.size(-1))
@@ -816,6 +815,7 @@ class MPNetForMultipleChoice(MPNetPreTrainedModel):
         outputs = self.mpnet(
             flat_input_ids,
             position_ids=flat_position_ids,
+            token_type_ids=flat_token_type_ids,
             attention_mask=flat_attention_mask,
             head_mask=head_mask,
             inputs_embeds=flat_inputs_embeds,
@@ -870,7 +870,7 @@ class MPNetForTokenClassification(MPNetPreTrainedModel):
     @add_start_docstrings_to_model_forward(MPNET_INPUTS_DOCSTRING.format("(batch_size, sequence_length)"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint=_CHECKPOINT_FOR_DOC,
+        checkpoint="microsoft/mpnet-base",
         output_type=TokenClassifierOutput,
         config_class=_CONFIG_FOR_DOC,
     )
@@ -878,6 +878,7 @@ class MPNetForTokenClassification(MPNetPreTrainedModel):
         self,
         input_ids=None,
         attention_mask=None,
+        token_type_ids=None,
         position_ids=None,
         head_mask=None,
         inputs_embeds=None,
@@ -891,12 +892,12 @@ class MPNetForTokenClassification(MPNetPreTrainedModel):
             Labels for computing the token classification loss. Indices should be in ``[0, ..., config.num_labels -
             1]``.
         """
-
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         outputs = self.mpnet(
             input_ids,
             attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
             position_ids=position_ids,
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
@@ -978,7 +979,7 @@ class MPNetForQuestionAnswering(MPNetPreTrainedModel):
     @add_start_docstrings_to_model_forward(MPNET_INPUTS_DOCSTRING.format("batch_size, sequence_length"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint=_CHECKPOINT_FOR_DOC,
+        checkpoint="microsoft/mpnet-base",
         output_type=QuestionAnsweringModelOutput,
         config_class=_CONFIG_FOR_DOC,
     )
@@ -986,6 +987,7 @@ class MPNetForQuestionAnswering(MPNetPreTrainedModel):
         self,
         input_ids=None,
         attention_mask=None,
+        token_type_ids=None,
         position_ids=None,
         head_mask=None,
         inputs_embeds=None,
@@ -1011,6 +1013,7 @@ class MPNetForQuestionAnswering(MPNetPreTrainedModel):
         outputs = self.mpnet(
             input_ids,
             attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
             position_ids=position_ids,
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
@@ -1023,8 +1026,8 @@ class MPNetForQuestionAnswering(MPNetPreTrainedModel):
 
         logits = self.qa_outputs(sequence_output)
         start_logits, end_logits = logits.split(1, dim=-1)
-        start_logits = start_logits.squeeze(-1).contiguous()
-        end_logits = end_logits.squeeze(-1).contiguous()
+        start_logits = start_logits.squeeze(-1)
+        end_logits = end_logits.squeeze(-1)
 
         total_loss = None
         if start_positions is not None and end_positions is not None:
@@ -1035,8 +1038,8 @@ class MPNetForQuestionAnswering(MPNetPreTrainedModel):
                 end_positions = end_positions.squeeze(-1)
             # sometimes the start/end positions are outside our model inputs, we ignore these terms
             ignored_index = start_logits.size(1)
-            start_positions = start_positions.clamp(0, ignored_index)
-            end_positions = end_positions.clamp(0, ignored_index)
+            start_positions.clamp_(0, ignored_index)
+            end_positions.clamp_(0, ignored_index)
 
             loss_fct = CrossEntropyLoss(ignore_index=ignored_index)
             start_loss = loss_fct(start_logits, start_positions)

@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 
 import numpy as np
@@ -33,10 +34,9 @@ def get_checkpoint_callback(output_dir, metric):
         )
 
     checkpoint_callback = ModelCheckpoint(
-        dirpath=output_dir,
-        filename=exp,
+        filepath=os.path.join(output_dir, exp),
         monitor=f"val_{metric}",
-        mode="min",
+        mode="max",
         save_top_k=3,
         period=1,  # maybe save a checkpoint every time val is run, not just end of epoch.
     )

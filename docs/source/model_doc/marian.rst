@@ -33,11 +33,11 @@ Implementation Notes
 - The modeling code is the same as :class:`~transformers.BartForConditionalGeneration` with a few minor modifications:
 
     - static (sinusoid) positional embeddings (:obj:`MarianConfig.static_position_embeddings=True`)
+    - a new final_logits_bias (:obj:`MarianConfig.add_bias_logits=True`)
     - no layernorm_embedding (:obj:`MarianConfig.normalize_embedding=False`)
     - the model starts generating with :obj:`pad_token_id` (which has 0 as a token_embedding) as the prefix (Bart uses
       :obj:`<s/>`),
 - Code to bulk convert models can be found in ``convert_marian_to_pytorch.py``.
-- This model was contributed by `sshleifer <https://huggingface.co/sshleifer>`__.
 
 Naming
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -56,10 +56,12 @@ Examples
 
 - Since Marian models are smaller than many other translation models available in the library, they can be useful for
   fine-tuning experiments and integration tests.
+- `Fine-tune on TPU
+  <https://github.com/huggingface/transformers/blob/master/examples/seq2seq/builtin_trainer/train_distil_marian_enro_tpu.sh>`__
 - `Fine-tune on GPU
-  <https://github.com/huggingface/transformers/blob/master/examples/research_projects/seq2seq-distillation/train_distil_marian_enro_teacher.sh>`__
+  <https://github.com/huggingface/transformers/blob/master/examples/seq2seq/builtin_trainer/train_distil_marian_enro.sh>`__
 - `Fine-tune on GPU with pytorch-lightning
-  <https://github.com/huggingface/transformers/blob/master/examples/research_projects/seq2seq-distillation/train_distil_marian_no_teacher.sh>`__
+  <https://github.com/huggingface/transformers/blob/master/examples/seq2seq/distil_marian_no_teacher.sh>`__
 
 Multilingual Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -77,29 +79,27 @@ require 3 character language codes:
 
 .. code-block:: python
 
-    >>> from transformers import MarianMTModel, MarianTokenizer
-    >>> src_text = [
-    ...     '>>fra<< this is a sentence in english that we want to translate to french',
-    ...     '>>por<< This should go to portuguese',
-    ...     '>>esp<< And this to Spanish'
-    >>> ]
+    from transformers import MarianMTModel, MarianTokenizer
+    src_text = [
+        '>>fra<< this is a sentence in english that we want to translate to french',
+        '>>por<< This should go to portuguese',
+        '>>esp<< And this to Spanish'
+    ]
 
-    >>> model_name = 'Helsinki-NLP/opus-mt-en-roa'
-    >>> tokenizer = MarianTokenizer.from_pretrained(model_name)
-    >>> print(tokenizer.supported_language_codes)
-    ['>>zlm_Latn<<', '>>mfe<<', '>>hat<<', '>>pap<<', '>>ast<<', '>>cat<<', '>>ind<<', '>>glg<<', '>>wln<<', '>>spa<<', '>>fra<<', '>>ron<<', '>>por<<', '>>ita<<', '>>oci<<', '>>arg<<', '>>min<<']
-
-    >>> model = MarianMTModel.from_pretrained(model_name)
-    >>> translated = model.generate(**tokenizer(src_text, return_tensors="pt", padding=True))
-    >>> [tokenizer.decode(t, skip_special_tokens=True) for t in translated]
-    ["c'est une phrase en anglais que nous voulons traduire en français",
-     'Isto deve ir para o português.',
-     'Y esto al español']
+    model_name = 'Helsinki-NLP/opus-mt-en-roa'
+    tokenizer = MarianTokenizer.from_pretrained(model_name)
+    print(tokenizer.supported_language_codes)
+    model = MarianMTModel.from_pretrained(model_name)
+    translated = model.generate(**tokenizer.prepare_seq2seq_batch(src_text, return_tensors="pt"))
+    tgt_text = [tokenizer.decode(t, skip_special_tokens=True) for t in translated]
+    # ["c'est une phrase en anglais que nous voulons traduire en français",
+    # 'Isto deve ir para o português.',
+    # 'Y esto al español']
 
 
 
 
-Here is the code to see all available pretrained models on the hub:
+Code to see available pretrained models:
 
 .. code-block:: python
 
@@ -150,22 +150,21 @@ Example of translating english to many romance languages, using old-style 2 char
 
 .. code-block::python
 
-    >>> from transformers import MarianMTModel, MarianTokenizer
-    >>> src_text = [
-    ...     '>>fr<< this is a sentence in english that we want to translate to french',
-    ...     '>>pt<< This should go to portuguese',
-    ...     '>>es<< And this to Spanish'
-    >>> ]
+    from transformers import MarianMTModel, MarianTokenizer
+    src_text = [
+        '>>fr<< this is a sentence in english that we want to translate to french',
+        '>>pt<< This should go to portuguese',
+        '>>es<< And this to Spanish'
+    ]
 
-    >>> model_name = 'Helsinki-NLP/opus-mt-en-ROMANCE'
-    >>> tokenizer = MarianTokenizer.from_pretrained(model_name)
+    model_name = 'Helsinki-NLP/opus-mt-en-ROMANCE'
+    tokenizer = MarianTokenizer.from_pretrained(model_name)
+    print(tokenizer.supported_language_codes)
 
-    >>> model = MarianMTModel.from_pretrained(model_name)
-    >>> translated = model.generate(**tokenizer(src_text, return_tensors="pt", padding=True))
-    >>> tgt_text = [tokenizer.decode(t, skip_special_tokens=True) for t in translated]
-    ["c'est une phrase en anglais que nous voulons traduire en français", 
-     'Isto deve ir para o português.',
-     'Y esto al español']
+    model = MarianMTModel.from_pretrained(model_name)
+    translated = model.generate(**tokenizer.prepare_seq2seq_batch(src_text, return_tensors="pt"))
+    tgt_text = [tokenizer.decode(t, skip_special_tokens=True) for t in translated]
+    # ["c'est une phrase en anglais que nous voulons traduire en français", 'Isto deve ir para o português.',  'Y esto al español']
 
 
 
@@ -180,39 +179,16 @@ MarianTokenizer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.MarianTokenizer
-    :members: as_target_tokenizer
-
-
-MarianModel
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.MarianModel
-    :members: forward
+    :members: prepare_seq2seq_batch
 
 
 MarianMTModel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.MarianMTModel
-    :members: forward
-
-
-MarianForCausalLM
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.MarianForCausalLM
-    :members: forward
-
-
-TFMarianModel
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: transformers.TFMarianModel
-    :members: call
 
 
 TFMarianMTModel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: transformers.TFMarianMTModel
-    :members: call

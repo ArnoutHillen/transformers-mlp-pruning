@@ -24,7 +24,8 @@ import timeit
 
 import numpy as np
 import torch
-from torch import nn
+import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
@@ -91,7 +92,7 @@ def to_list(tensor):
 
 
 def train(args, train_dataset, model, tokenizer, teacher=None):
-    """Train the model"""
+    """ Train the model """
     if args.local_rank in [-1, 0]:
         tb_writer = SummaryWriter()
 
@@ -137,11 +138,11 @@ def train(args, train_dataset, model, tokenizer, teacher=None):
 
     # multi-gpu training (should be after apex fp16 initialization)
     if args.n_gpu > 1:
-        model = nn.DataParallel(model)
+        model = torch.nn.DataParallel(model)
 
     # Distributed training (should be after apex fp16 initialization)
     if args.local_rank != -1:
-        model = nn.parallel.DistributedDataParallel(
+        model = torch.nn.parallel.DistributedDataParallel(
             model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True
         )
 
@@ -231,15 +232,15 @@ def train(args, train_dataset, model, tokenizer, teacher=None):
                 loss_fct = nn.KLDivLoss(reduction="batchmean")
                 loss_start = (
                     loss_fct(
-                        nn.functional.log_softmax(start_logits_stu / args.temperature, dim=-1),
-                        nn.functional.softmax(start_logits_tea / args.temperature, dim=-1),
+                        F.log_softmax(start_logits_stu / args.temperature, dim=-1),
+                        F.softmax(start_logits_tea / args.temperature, dim=-1),
                     )
                     * (args.temperature ** 2)
                 )
                 loss_end = (
                     loss_fct(
-                        nn.functional.log_softmax(end_logits_stu / args.temperature, dim=-1),
-                        nn.functional.softmax(end_logits_tea / args.temperature, dim=-1),
+                        F.log_softmax(end_logits_stu / args.temperature, dim=-1),
+                        F.softmax(end_logits_tea / args.temperature, dim=-1),
                     )
                     * (args.temperature ** 2)
                 )
@@ -261,9 +262,9 @@ def train(args, train_dataset, model, tokenizer, teacher=None):
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0:
                 if args.fp16:
-                    nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+                    torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
                 else:
-                    nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
                 optimizer.step()
                 scheduler.step()  # Update learning rate schedule
@@ -325,8 +326,8 @@ def evaluate(args, model, tokenizer, prefix=""):
     eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
     # multi-gpu evaluate
-    if args.n_gpu > 1 and not isinstance(model, nn.DataParallel):
-        model = nn.DataParallel(model)
+    if args.n_gpu > 1 and not isinstance(model, torch.nn.DataParallel):
+        model = torch.nn.DataParallel(model)
 
     # Eval!
     logger.info("***** Running evaluation {} *****".format(prefix))

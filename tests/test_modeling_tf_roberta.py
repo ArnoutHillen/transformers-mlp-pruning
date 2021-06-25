@@ -185,8 +185,6 @@ class TFRobertaModelTest(TFModelTesterMixin, unittest.TestCase):
         if is_tf_available()
         else ()
     )
-    test_head_masking = False
-    test_onnx = False
 
     def setUp(self):
         self.model_tester = TFRobertaModelTester(self)

@@ -44,8 +44,7 @@ Tips:
   efficient at predicting masked tokens and at NLU in general, but is not optimal for text generation. Models trained
   with a causal language modeling (CLM) objective are better in that regard.
 
-This model was contributed by `vshampor <https://huggingface.co/vshampor>`__. The original code can be found `here
-<https://github.com/google-research/mobilebert>`__.
+The original code can be found `here <https://github.com/google-research/mobilebert>`__.
 
 MobileBertConfig
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

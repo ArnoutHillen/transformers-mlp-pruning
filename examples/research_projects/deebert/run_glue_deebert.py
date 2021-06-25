@@ -9,7 +9,6 @@ import time
 
 import numpy as np
 import torch
-from torch import nn
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
@@ -71,7 +70,7 @@ def get_wanted_result(result):
 
 
 def train(args, train_dataset, model, tokenizer, train_highway=False):
-    """Train the model"""
+    """ Train the model """
     if args.local_rank in [-1, 0]:
         tb_writer = SummaryWriter()
 
@@ -136,11 +135,11 @@ def train(args, train_dataset, model, tokenizer, train_highway=False):
 
     # multi-gpu training (should be after apex fp16 initialization)
     if args.n_gpu > 1:
-        model = nn.DataParallel(model)
+        model = torch.nn.DataParallel(model)
 
     # Distributed training (should be after apex fp16 initialization)
     if args.local_rank != -1:
-        model = nn.parallel.DistributedDataParallel(
+        model = torch.nn.parallel.DistributedDataParallel(
             model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True
         )
 
@@ -191,9 +190,9 @@ def train(args, train_dataset, model, tokenizer, train_highway=False):
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0:
                 if args.fp16:
-                    nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+                    torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
                 else:
-                    nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
                 optimizer.step()
                 scheduler.step()  # Update learning rate schedule
@@ -256,7 +255,7 @@ def evaluate(args, model, tokenizer, prefix="", output_layer=-1, eval_highway=Fa
 
         # multi-gpu eval
         if args.n_gpu > 1:
-            model = nn.DataParallel(model)
+            model = torch.nn.DataParallel(model)
 
         # Eval!
         logger.info("***** Running evaluation {} *****".format(prefix))
