@@ -772,7 +772,7 @@ class BertModel(BertPreTrainedModel):
     def prune_all_mlp_neurons_except(self, neurons: Dict[int, Tuple[int]]) -> None:
         for i, l in enumerate(self.encoder.layer):
             if i in neurons.keys():
-                indices = torch.LongTensor(neurons[i])
+                indices = torch.LongTensor(sorted(neurons[i]))
                 dim = len(neurons[i])
                 # intermediate
                 l.intermediate.dense.weight = nn.Parameter(l.intermediate.dense.weight.index_select(0, indices).reshape(dim, self.config.hidden_size), requires_grad=True)  # (output_dim, input_dim)
