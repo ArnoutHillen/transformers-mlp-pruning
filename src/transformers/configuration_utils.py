@@ -214,6 +214,8 @@ class PretrainedConfig(object):
             # Keys are always strings in JSON so convert ids to int here.
         else:
             self.num_labels = kwargs.pop("num_labels", 2)
+        # Added by Arnout.
+        self.avg_pool = kwargs.pop("avg_pool", None)
 
         # Tokenizer arguments TODO: eventually tokenizer and models should share the same config
         self.tokenizer_class = kwargs.pop("tokenizer_class", None)

@@ -534,6 +534,7 @@ class BertPooler(nn.Module):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         self.activation = nn.Tanh()
+        self.config = config
 
     def forward(self, hidden_states):
         # We "pool" the model by simply taking the hidden state corresponding
@@ -1414,6 +1415,9 @@ class BertForSequenceClassification(BertPreTrainedModel):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )
+
+    def prune_all_mlp_neurons_except(self, neurons: Dict[int, Tuple[int]]) -> None:
+        self.bert.prune_all_mlp_neurons_except(neurons)
 
 
 @add_start_docstrings(
