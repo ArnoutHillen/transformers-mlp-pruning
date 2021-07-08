@@ -772,6 +772,13 @@ class BertModel(BertPreTrainedModel):
         self.init_weights()
 
     # Added by Arnout.
+    def remove_layers(self, layers:Tuple[int]) -> None:
+        previous_indices = set(range(len(self.encoder.layer)))
+        remove_indices = set(layers)
+        new_indices = sorted(tuple(previous_indices - remove_indices))
+        self.encoder.layer = nn.ModuleList([self.encoder.layer[i] for i in new_indices])
+
+    # Added by Arnout.
     def prune_all_mlp_neurons_except(self, neurons: Dict[int, Tuple[int]]) -> None:
         for i, l in enumerate(self.encoder.layer):
             if i in neurons.keys():
@@ -1416,8 +1423,13 @@ class BertForSequenceClassification(BertPreTrainedModel):
             attentions=outputs.attentions,
         )
 
+    # Added by Arnout.
     def prune_all_mlp_neurons_except(self, neurons: Dict[int, Tuple[int]]) -> None:
         self.bert.prune_all_mlp_neurons_except(neurons)
+
+    # Added by Arnout.
+    def remove_layers(self, layers:Tuple[int]) -> None:
+        self.bert.remove_layers(layers)
 
 
 @add_start_docstrings(

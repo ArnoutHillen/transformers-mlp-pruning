@@ -1,6 +1,8 @@
 from transformers.models.bert.modeling_bert import BertModel, BertForSequenceClassification
 from transformers.models.bert.tokenization_bert import BertTokenizer
 import torch
+from transformers import AutoModelForSequenceClassification
+
 
 ####################
 # Helper functions #
@@ -13,8 +15,11 @@ if __name__ == "__main__":
     excluded_neurons = {0:(0,), 1:(0,1), 2:(0,1,2)}
     #model = BertModel.from_pretrained("bert-base-cased")
     tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
-    model = BertForSequenceClassification.from_pretrained("bert-base-cased", num_labels=2, avg_pool=True)
+    model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=2, avg_pool=True)
+    print(model.config.avg_pool)
     inputs = tokenizer("Hello", return_tensors="pt")
+    print("### remove layers ###")
+    model.remove_layers((9,10,11))
     print("### prune ###")
     model.prune_all_mlp_neurons_except({0:(0,1),1:(0,2)})
     print("### inputs ###")
