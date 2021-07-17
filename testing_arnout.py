@@ -20,6 +20,8 @@ if __name__ == "__main__":
     inputs = tokenizer("Hello", return_tensors="pt")
     print("### remove layers ###")
     model.remove_layers((9,10,11))
+    print("### no ffnn ###")
+    model.bert.encoder.layer[8].apply_ffn = False
     print("### prune ###")
     model.prune_all_mlp_neurons_except({0:(0,1),1:(0,2)})
     print("### inputs ###")

@@ -410,6 +410,9 @@ class BertLayer(nn.Module):
         self.intermediate = BertIntermediate(config)
         self.output = BertOutput(config)
 
+        # Added by Arnout.
+        self.apply_ffn = True
+
     def forward(
         self,
         hidden_states,
@@ -450,8 +453,8 @@ class BertLayer(nn.Module):
         return outputs
 
     def feed_forward_chunk(self, attention_output):
-        intermediate_output = self.intermediate(attention_output)
-        layer_output = self.output(intermediate_output, attention_output)
+        intermediate_output = self.intermediate(attention_output) if self.apply_ffn else attention_output
+        layer_output = self.output(intermediate_output, attention_output) if self.apply_ffn else intermediate_output
         return layer_output
 
 
