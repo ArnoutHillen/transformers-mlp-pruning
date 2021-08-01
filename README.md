@@ -1,4 +1,4 @@
-The changes to the BERT model are made in this [file](https://github.com/ArnoutHillen/transformers-mlp-pruning/blob/master/src/transformers/models/bert/modeling_bert.py).
+The changes to the BERT model can be found in this [file](https://github.com/ArnoutHillen/transformers-mlp-pruning/blob/master/src/transformers/models/bert/modeling_bert.py).
 
 ## Steps to prune a BERT model.
 
