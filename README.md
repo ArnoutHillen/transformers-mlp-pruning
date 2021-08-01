@@ -10,7 +10,7 @@ pip install git+https://github.com/ArnoutHillen/transformers-mlp-pruning.git@mas
 - Create a tokenizer and a model.
 ```python
 tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
-model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=2, avg_pool=True)
+model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=2)
 ```
 
 
