@@ -1,4 +1,4 @@
-The adapted BERT model is located in 
+The changes to the BERT model are made to src/transformers/models/bert/modelling_bert.py
 
 # Steps to prune a BERT model.
 
