@@ -14,7 +14,7 @@ model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased", nu
 ```
 
 
-- Prune individual neurons by providing a dictionary that has for each layer the neurons to keep as a list (e.g., for layer 3, {3:[0,1,2]}).
+- Prune individual neurons by providing a dictionary that has for each layer the neurons to keep as a list (e.g., for layer 3 it would be {3:[0,1,2]}).
 ```python
 model.bert.prune_all_mlp_neurons_except(neurons)
 ```
