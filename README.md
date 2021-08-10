@@ -4,7 +4,7 @@ The changes to the BERT model can be found in this [file](https://github.com/Arn
 
 - Install via pip.
 ```bash
-pip install git+https://github.com/ArnoutHillen/transformers-mlp-pruning.git@master
+pip install git+https://github.com/ArnoutHillen/transformers-mlp-pruning.git
 ```
 
 - Create a tokenizer and a model.
